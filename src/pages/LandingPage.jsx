@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-
+import logo from '../assets/solid-5.svg';
 // ── Global CSS injected once ──────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -436,11 +436,7 @@ export default function LandingPage({ onLogin, onSignup }) {
       <nav className="lp-nav" ref={navRef}>
         <a className="lp-nav-logo" href="/">
           <div className="lp-nav-logo-text">
-            <img
-              src="solid-5.svg"
-              style={{ width: "120px" }}
-              alt="Solid5 Shield"
-            />
+            <img src={logo} style={{ width: "120px" }} alt="Solid5 Shield" />
           </div>
         </a>
         <div className="lp-nav-links">

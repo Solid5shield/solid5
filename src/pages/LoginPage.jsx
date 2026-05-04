@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
+import logo from '../assets/solid-5-white.svg';
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -465,11 +466,7 @@ export default function LoginPage({ onSuccess, onSignup, onBack }) {
 
         <div style={s.leftContent}>
           <a href="/" style={s.leftLogo}>
-            <img
-              src="/solid-5-white.svg"
-              style={{ width: "120px" }}
-              alt="Solid5 Shield"
-            />
+            <img src={logo} style={{ width: "120px" }} alt="Solid5 Shield" />
           </a>
 
           <h2 style={s.leftHeadline}>

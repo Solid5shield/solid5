@@ -598,103 +598,6 @@ const PROVIDERS = [
   },
 ];
 
-const SAMPLE_EMAILS = [
-  {
-    id: 0,
-    provider: "ms365",
-    from: "billing@paypa1.com",
-    name: "PayPal Billing",
-    subject: "Account limited — verify now",
-    trusted: "paypal.com",
-    time: "2m ago",
-    campaign: "PayPal Spoof Wave",
-  },
-  {
-    id: 1,
-    provider: "ms365",
-    from: "security@g00gle.com",
-    name: "Google Security",
-    subject: "Unusual sign-in activity detected",
-    trusted: "google.com",
-    time: "8m ago",
-  },
-  {
-    id: 2,
-    provider: "gmail",
-    from: "hr@microsoft-corp.net",
-    name: "Microsoft HR",
-    subject: "Benefits enrollment closing today",
-    trusted: "microsoft.com",
-    time: "15m ago",
-  },
-  {
-    id: 3,
-    provider: "gmail",
-    from: "invoices@amazon.com",
-    name: "Amazon Business",
-    subject: "Invoice #INV-20240312 ready",
-    trusted: "amazon.com",
-    time: "23m ago",
-  },
-  {
-    id: 4,
-    provider: "zoho",
-    from: "support@netfIix.com",
-    name: "Netflix Support",
-    subject: "Payment failed — update billing info",
-    trusted: "netflix.com",
-    time: "31m ago",
-    campaign: "Streaming Fraud Ring",
-  },
-  {
-    id: 5,
-    provider: "zoho",
-    from: "vendor@supplychaintrade.biz",
-    name: "Supply Chain Ltd",
-    subject: "Q2 2024 partnership proposal",
-    trusted: null,
-    time: "1h ago",
-  },
-  {
-    id: 6,
-    provider: "ms365",
-    from: "noreply@fedex-delivery.co",
-    name: "FedEx Delivery",
-    subject: "Package awaiting confirmation",
-    trusted: "fedex.com",
-    time: "1h ago",
-    campaign: "Delivery Phish Cluster",
-  },
-  {
-    id: 7,
-    provider: "imap",
-    from: "accounts@bankofamerica.com",
-    name: "Bank of America",
-    subject: "Monthly statement ready",
-    trusted: "bankofamerica.com",
-    time: "2h ago",
-  },
-  {
-    id: 8,
-    provider: "ms365",
-    from: "admin@paypal.secure-verify.com",
-    name: "PayPal Security",
-    subject: "Immediate verification required",
-    trusted: "paypal.com",
-    time: "3h ago",
-    campaign: "PayPal Spoof Wave",
-  },
-  {
-    id: 9,
-    provider: "gmail",
-    from: "noreply@apple-id.co",
-    name: "Apple ID",
-    subject: "Your Apple ID was used to sign in",
-    trusted: "apple.com",
-    time: "4h ago",
-  },
-];
-
 const LOOKALIKE_DOMAINS = [
   {
     domain: "your-company-secure.com",
@@ -1151,7 +1054,7 @@ function CheckGrid({ localChecks, result }) {
   );
 }
 
-function DetailPane({ email, result, onAudit, settings }) {
+function DetailPane({ email, result, onAudit, }) {
   const [caseStatus, setCaseStatus] = useState("OPEN");
   if (!email)
     return (
@@ -2451,28 +2354,65 @@ export default function Solid5Shiled() {
     analyzing.current = false;
   }, [settings, addAudit]);
 
-  useEffect(() => {
-    const load = async () => {
-      for (const e of SAMPLE_EMAILS) {
-        await new Promise((r) => setTimeout(r, 180));
-        setEmails((prev) => [...prev, { ...e, risk: null }]);
-        setStats((prev) => ({ ...prev, total: prev.total + 1 }));
-        analyzeQueue.current.push(e);
-        processQueue();
+ useEffect(() => {
+  const loadClientEmails = async () => {
+    const user = _auth.currentUser;
+    if (!user) return;
+
+    const idToken = await user.getIdToken();
+    const providers = ["zoho", "ms365", "gmail", "imap"];
+
+    for (const provider of providers) {
+      try {
+        const res = await fetch(`/api/emails?provider=${provider}`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+
+        if (!res.ok) continue; // provider not connected yet — skip
+
+        const { emails: fetched } = await res.json();
+
+        for (const e of fetched) {
+          const email = { ...e, risk: null, trusted: null };
+          setEmails((prev) => [...prev, email]);
+          setStats((prev) => ({ ...prev, total: prev.total + 1 }));
+          analyzeQueue.current.push(email);
+          processQueue();
+        }
+
+        setConnected((prev) => ({ ...prev, [provider]: true }));
+
+      } catch {
+        // Provider fetch failed — continue with others
       }
-    };
-    load();
-  }, []);
+    }
+  };
+
+  // Wait for Firebase auth to resolve before fetching
+  const unsub = onAuthStateChanged(_auth, (user) => {
+    if (user) loadClientEmails();
+  });
+
+  return unsub;
+}, []);
 useEffect(() => {
   const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
   return unsub;
 }, []);
-  const handleConnect = (id) => {
-    setConnected((prev) => ({ ...prev, [id]: true }));
-    setModal(null);
-    setActiveProvider(id);
-    addAudit(makeAuditEntry("connect", `Connected provider: ${id}`, "at-scan"));
+const handleConnect = (providerId) => {
+  const uid = _auth.currentUser?.uid;
+  if (!uid) { alert("Please sign in first"); return; }
+  
+  const urls = {
+    zoho:  `/api/oauth/zoho/start?uid=${uid}`,
+    ms365: `/api/oauth/ms/start?uid=${uid}`,
+    gmail: `/api/oauth/google/start?uid=${uid}`,
   };
+
+  if (urls[providerId]) {
+    window.location.href = urls[providerId];
+  }
+};
 
   const checkManual = async () => {
     const raw = manualInput
