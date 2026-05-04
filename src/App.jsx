@@ -3,36 +3,28 @@ import { useState } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FraudShield from "./pages/FraudShield";
-import LoginPage from "./pages/LoginPage";   // ← see note below
-import "./App.css";
+import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage"; // ← import your landing page
 
-/**
- * View switcher — no router needed.
- *
- * Views:
- *   "login"     → public login/signup page
- *   "dashboard" → protected FraudShield dashboard
- *
- * The AuthProvider wraps everything so any child can call useAuth().
- */
 export default function App() {
-  const [view, setView] = useState("dashboard"); // optimistically try dashboard first
+  const [view, setView] = useState("landing"); // ← start at landing now
 
   return (
     <AuthProvider>
-      {view === "dashboard" ? (
-        <ProtectedRoute
-          // If Firebase says "not logged in", bounce back to login
-          onRedirect={() => setView("login")}
-        >
-          {/* Your existing dashboard — receives logout via useAuth() */}
+      {view === "landing" ? (
+        <LandingPage
+          onGetStarted={() => setView("login")}   // CTA → login
+          onLogin={() => setView("login")}         // "Sign in" link → login
+        />
+      ) : view === "dashboard" ? (
+        <ProtectedRoute onRedirect={() => setView("login")}>
           <FraudShield />
         </ProtectedRoute>
       ) : (
-        // Once the user signs in successfully, Firebase triggers onAuthStateChanged
-        // inside AuthProvider which re-renders — ProtectedRoute will then pass through.
-        // We just need to flip the view back to "dashboard" after a successful login.
-        <LoginPage onSuccess={() => setView("dashboard")} />
+        <LoginPage
+          onSuccess={() => setView("dashboard")}
+          onBack={() => setView("landing")}        // optional back link
+        />
       )}
     </AuthProvider>
   );
