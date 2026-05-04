@@ -176,7 +176,7 @@ async function dispatchWebhooks(result, emailMeta, env) {
   // Slack
   if (env.SLACK_WEBHOOK_URL) {
     const slackPayload = {
-      text: `🚨 *FraudShield HIGH RISK Detection*`,
+      text: `🚨 *Solid5Shield HIGH RISK Detection*`,
       blocks: [
         {
           type: "section",

@@ -915,7 +915,7 @@ async function analyzeWithClaude(email) {
   const threatIntel = simulateThreatIntel(domain);
  
   // Build the same prompt as before — Worker forwards it to Claude
-  const prompt = `You are FraudShield Enterprise, an AI security analyst. Perform deep domain trust analysis.
+  const prompt = `You are Solid5Shiled Enterprise, an AI security analyst. Perform deep domain trust analysis.
 Sender: ${email.from}
 Domain: ${domain}
 Claimed entity: ${email.name}
@@ -1197,7 +1197,7 @@ function DetailPane({ email, result, onAudit, settings }) {
 
   const copyReport = () => {
     const txt = [
-      `=== FraudShield Enterprise Security Report ===`,
+      `=== Solid5Shiled Enterprise Security Report ===`,
       `Case ID:    ${caseId}`,
       `Generated:  ${new Date().toISOString()}`,
       ``,
@@ -2323,7 +2323,7 @@ function SettingsTab({ settings, setSettings }) {
         </div>
         <div className="settings-body">
           <div style={{fontSize: 13, color: "var(--text2)", marginBottom: 8 }}>
-            Embed FraudShield's analysis engine in your own systems.
+            Embed Solid5Shiled's analysis engine in your own systems.
           </div>
           <div
             style={{
@@ -2354,7 +2354,7 @@ function SettingsTab({ settings, setSettings }) {
   );
 }
 
-export default function FraudShield() {
+export default function Solid5Shiled() {
   const [emails, setEmails] = useState([]);
   const [analysis, setAnalysis] = useState({});
   const [selected, setSelected] = useState(null);
@@ -2366,7 +2366,7 @@ export default function FraudShield() {
   const [tab, setTab] = useState("monitor");
   const [currentUser, setCurrentUser] = useState(null);
   const [auditLog, setAuditLog] = useState([
-    makeAuditEntry("system", "FraudShield Enterprise v3.0 started", "at-scan"),
+    makeAuditEntry("system", "Solid5Shiled Enterprise v3.0 started", "at-scan"),
   ]);
   const [settings, setSettings] = useState({
     slackEnabled: true,
@@ -2543,7 +2543,7 @@ useEffect(() => {
               
             </div>
             <div className="logo-text">
-              <h1>FRAUDSHIELD</h1>
+              <h1>SOLID5SHIELD</h1>
               <p>Enterprise Identity Protection v3.0</p>
             </div>
           </div>
