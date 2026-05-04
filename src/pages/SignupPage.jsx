@@ -9,7 +9,6 @@ import {
   OAuthProvider,
   onAuthStateChanged,
 } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 
 // ── Firebase (reuse existing app if already initialised) ──────────────────────
 const firebaseConfig = {
@@ -100,13 +99,17 @@ const GLOBAL_CSS = `
 
   .su-str-bar { flex:1; height:3px; border-radius:2px; background:#e2ddd6; transition:background .3s; }
 
-  /* right panel slide */
   .su-slide-item { position:absolute; inset:16px 20px 14px; transition:opacity .5s, transform .5s; }
   .su-slide-item.on  { opacity:1; transform:translateY(0); }
   .su-slide-item.off { opacity:0; transform:translateY(8px); pointer-events:none; }
   .su-dot { height:6px; border-radius:3px; background:rgba(255,255,255,.22); cursor:pointer; transition:all .3s; border:none; }
   .su-dot.on { width:20px; background:#0d9970; }
   .su-dot:not(.on) { width:6px; }
+
+  .su-text-btn {
+    background:none; border:none; cursor:pointer; padding:0;
+    font-family:inherit; font-size:inherit;
+  }
 `;
 
 function injectStyles() {
@@ -219,40 +222,37 @@ const SLIDES = [
 ];
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function SignupPage() {
-  const navigate = useNavigate();
+export default function SignupPage({ onSuccess, onBack }) {
   const canvasRef = useRef(null);
   useRightCanvas(canvasRef);
 
-  // form state
-  const [fullName, setFullName]       = useState("");
-  const [email, setEmail]             = useState("");
-  const [password, setPassword]       = useState("");
-  const [confirmPw, setConfirmPw]     = useState("");
-  const [terms, setTerms]             = useState(false);
-  const [showPw1, setShowPw1]         = useState(false);
-  const [showPw2, setShowPw2]         = useState(false);
-  const [strength, setStrength]       = useState(0);
-  const [loading, setLoading]         = useState(false);
-  const [ssoLoad, setSsoLoad]         = useState({ g: false, ms: false });
-  const [error, setError]             = useState("");
-  const [success, setSuccess]         = useState("");
-  const [slide, setSlide]             = useState(0);
+  const [fullName, setFullName]   = useState("");
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [terms, setTerms]         = useState(false);
+  const [showPw1, setShowPw1]     = useState(false);
+  const [showPw2, setShowPw2]     = useState(false);
+  const [strength, setStrength]   = useState(0);
+  const [loading, setLoading]     = useState(false);
+  const [ssoLoad, setSsoLoad]     = useState({ g: false, ms: false });
+  const [error, setError]         = useState("");
+  const [success, setSuccess]     = useState("");
+  const [slide, setSlide]         = useState(0);
 
   useEffect(() => {
     injectStyles();
-    const unsub = onAuthStateChanged(auth, (u) => { if (u) navigate("/dashboard"); });
+    const unsub = onAuthStateChanged(auth, (u) => { if (u) onSuccess(); });
     return unsub;
-  }, [navigate]);
+  }, []);
 
-  // auto-advance slides
   useEffect(() => {
     const id = setInterval(() => setSlide((c) => (c + 1) % 3), 4200);
     return () => clearInterval(id);
   }, []);
 
   function showError(msg) { setError(msg); setTimeout(() => setError(""), 6000); }
-  function showSuccess(msg) { setSuccess(msg); }
+  function showSuccessMsg(msg) { setSuccess(msg); }
 
   const authErrMap = {
     "auth/email-already-in-use": "Email already registered. Sign in instead.",
@@ -262,16 +262,16 @@ export default function SignupPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!terms)             return showError("Please accept the Terms of Service.");
-    if (password !== confirmPw) return showError("Passwords don't match.");
-    if (password.length < 8)    return showError("Password must be at least 8 characters.");
-    if (!validatePw(password))  return showError("Need uppercase, lowercase, number & special char.");
+    if (!terms)                  return showError("Please accept the Terms of Service.");
+    if (password !== confirmPw)  return showError("Passwords don't match.");
+    if (password.length < 8)     return showError("Password must be at least 8 characters.");
+    if (!validatePw(password))   return showError("Need uppercase, lowercase, number & special char.");
     setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: fullName });
-      showSuccess("Account created! Redirecting…");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      showSuccessMsg("Account created! Redirecting…");
+      setTimeout(() => onSuccess(), 1500);
     } catch (err) {
       showError(authErrMap[err.code] || err.message);
     } finally {
@@ -281,14 +281,14 @@ export default function SignupPage() {
 
   async function handleGoogle() {
     setSsoLoad((s) => ({ ...s, g: true }));
-    try { await signInWithPopup(auth, googleProvider); navigate("/dashboard"); }
+    try { await signInWithPopup(auth, googleProvider); onSuccess(); }
     catch (e) { if (e.code !== "auth/popup-closed-by-user") showError(e.message); }
     finally { setSsoLoad((s) => ({ ...s, g: false })); }
   }
 
   async function handleMs() {
     setSsoLoad((s) => ({ ...s, ms: true }));
-    try { await signInWithPopup(auth, msProvider); navigate("/dashboard"); }
+    try { await signInWithPopup(auth, msProvider); onSuccess(); }
     catch (e) { if (e.code !== "auth/popup-closed-by-user") showError(e.message); }
     finally { setSsoLoad((s) => ({ ...s, ms: false })); }
   }
@@ -301,7 +301,7 @@ export default function SignupPage() {
     hd: { flexShrink: 0, marginBottom: "3px" },
     hdH1: { fontFamily: "var(--font,Syne,sans-serif)", fontSize: "21px", fontWeight: 800, color: "#111827", letterSpacing: "-0.4px" },
     hdP: { fontSize: "12.5px", color: "#6b7280", marginTop: "3px" },
-    link: { color: "#0a7c5c", fontWeight: 600, textDecoration: "none" },
+    link: { color: "#0a7c5c", fontWeight: 600, textDecoration: "none", background: "none", border: "none", cursor: "pointer", fontSize: "inherit", fontFamily: "inherit", padding: 0 },
     badge: { display: "flex", alignItems: "center", gap: "9px", background: "rgba(10,124,92,0.08)", border: "1px solid rgba(10,124,92,0.28)", borderRadius: "10px", padding: "8px 12px", margin: "10px 0", fontSize: "12px", color: "#374151", flexShrink: 0 },
     badgeIco: { width: "24px", height: "24px", flexShrink: 0, background: "rgba(10,124,92,0.12)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center" },
     ssoRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px", flexShrink: 0 },
@@ -319,7 +319,6 @@ export default function SignupPage() {
     terms: { display: "flex", alignItems: "flex-start", gap: "8px", flexShrink: 0 },
     termsTxt: { fontSize: "11.5px", color: "#6b7280", lineHeight: 1.5 },
     foot: { textAlign: "center", fontSize: "12px", color: "#6b7280", flexShrink: 0, borderTop: "1px solid #d1d5db", paddingTop: "10px", marginTop: "4px" },
-    // right
     R: { width: "48%", background: "#0f1c3f", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" },
     blob: (top, right, bottom, left, w, h, c) => ({ position: "absolute", borderRadius: "50%", filter: "blur(80px)", pointerEvents: "none", ...(top !== undefined && { top }), ...(right !== undefined && { right }), ...(bottom !== undefined && { bottom }), ...(left !== undefined && { left }), width: w, height: h, background: c }),
     Rinner: { position: "relative", zIndex: 2, width: "100%", maxWidth: "340px", display: "flex", flexDirection: "column", gap: "12px" },
@@ -327,7 +326,6 @@ export default function SignupPage() {
     slideVis: { position: "relative", height: "190px", overflow: "hidden", background: "rgba(255,255,255,0.03)" },
     slideFade: { position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,28,63,0.7) 0%, transparent 55%)", pointerEvents: "none" },
     slideBody: { padding: "16px 20px 14px", minHeight: "100px", position: "relative" },
-    slideItemBase: { position: "absolute", inset: "16px 20px 14px", transition: "opacity .5s, transform .5s" },
     slideH3: { fontFamily: "var(--font,Syne,sans-serif)", fontSize: "16px", fontWeight: 800, color: "#fff", letterSpacing: "-0.3px", marginBottom: "5px" },
     slideP: { fontSize: "12px", color: "rgba(255,255,255,0.55)", lineHeight: 1.55 },
     dots: { display: "flex", gap: "5px", position: "absolute", bottom: "12px", left: "20px" },
@@ -355,7 +353,7 @@ export default function SignupPage() {
             <h1 style={s.hdH1}>Create your account</h1>
             <p style={s.hdP}>
               Get started — it&apos;s free. No credit card required. &nbsp;
-              <a href="/login" style={s.link}>Sign in →</a>
+              <button onClick={onBack} style={s.link}>Sign in →</button>
             </p>
           </div>
 
@@ -419,7 +417,6 @@ export default function SignupPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate style={s.form}>
 
-            {/* Full name */}
             <div className="su-fld" style={s.fld}>
               <label style={s.fldLabel} htmlFor="su-name">Full Name</label>
               <input type="text" id="su-name" placeholder="John Smith" required autoComplete="name"
@@ -427,7 +424,6 @@ export default function SignupPage() {
                 value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
 
-            {/* Email */}
             <div className="su-fld" style={s.fld}>
               <label style={s.fldLabel} htmlFor="su-email">Email Address</label>
               <input type="email" id="su-email" placeholder="john@company.com" required autoComplete="email"
@@ -435,9 +431,7 @@ export default function SignupPage() {
                 value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
 
-            {/* Password + Confirm (2-col) */}
             <div style={s.row2}>
-              {/* Password */}
               <div className="su-fld" style={s.fld}>
                 <label style={s.fldLabel} htmlFor="su-pw">Password</label>
                 <div style={s.pwWrap}>
@@ -449,7 +443,6 @@ export default function SignupPage() {
                     <EyeIcon open={showPw1} />
                   </button>
                 </div>
-                {/* Strength bars */}
                 <div style={s.strBars}>
                   {[0,1,2,3].map((i) => (
                     <div key={i} className="su-str-bar"
@@ -461,7 +454,6 @@ export default function SignupPage() {
                 </span>
               </div>
 
-              {/* Confirm password */}
               <div className="su-fld" style={s.fld}>
                 <label style={s.fldLabel} htmlFor="su-cpw">Confirm Password</label>
                 <div style={s.pwWrap}>
@@ -475,19 +467,17 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Terms */}
             <div style={s.terms}>
               <input type="checkbox" id="su-terms" checked={terms}
                 onChange={(e) => setTerms(e.target.checked)}
                 style={{ width: "14px", height: "14px", flexShrink: 0, marginTop: "2px", accentColor: "#0a7c5c", cursor: "pointer" }} />
               <label style={s.termsTxt} htmlFor="su-terms">
                 I agree to Solid5&apos;s{" "}
-                <a href="/terms" style={s.link}>Terms of Service</a> and{" "}
-                <a href="/privacy" style={s.link}>Privacy Policy</a>. Shield uses read-only access and never stores my emails.
+                <a href="/terms" style={{ color: "#0a7c5c", fontWeight: 600 }}>Terms of Service</a> and{" "}
+                <a href="/privacy" style={{ color: "#0a7c5c", fontWeight: 600 }}>Privacy Policy</a>. Shield uses read-only access and never stores my emails.
               </label>
             </div>
 
-            {/* Submit */}
             <button type="submit" className={`su-submit-btn${loading ? " loading" : ""}`} disabled={loading}>
               <span className="su-btn-lbl">
                 Create Account &nbsp;
@@ -498,9 +488,9 @@ export default function SignupPage() {
             </button>
           </form>
 
-          {/* Footer */}
           <div style={s.foot}>
-            Already have an account? <a href="/login" style={s.link}>Sign in</a>
+            Already have an account?{" "}
+            <button onClick={onBack} style={s.link}>Sign in</button>
           </div>
         </div>
       </div>
@@ -512,7 +502,6 @@ export default function SignupPage() {
         <div style={{ ...s.blob(undefined, undefined, undefined, undefined, "220px", "220px", "rgba(13,153,112,0.1)"), top: "50%", left: "50%", transform: "translate(-50%,-50%)" }} />
 
         <div style={s.Rinner}>
-          {/* Slide card */}
           <div style={s.slideCard}>
             <div style={s.slideVis}>
               <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
@@ -533,7 +522,6 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div style={s.stats}>
             {[["14","Checks"],["<2s","Scan time"],["98%","Accuracy"]].map(([v,l]) => (
               <div key={l} style={s.stat}>
@@ -543,7 +531,6 @@ export default function SignupPage() {
             ))}
           </div>
 
-          {/* Trust */}
           <div style={s.trust}>
             <div style={s.trustIco}>
               <svg viewBox="0 0 24 24" fill="none" stroke="#0d9970" strokeWidth="1.8" width="14" height="14">

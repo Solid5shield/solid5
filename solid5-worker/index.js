@@ -214,7 +214,7 @@ async function dispatchWebhooks(result, emailMeta, env) {
     const siemEvent = {
       time: Math.floor(Date.now() / 1000),
       event: {
-        source: "fraudshield",
+        source: "solid5shield",
         severity: result.risk,
         from: emailMeta.from,
         subject: emailMeta.subject,

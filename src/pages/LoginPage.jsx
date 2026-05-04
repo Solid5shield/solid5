@@ -1,4 +1,4 @@
-// src/pages/Logimport { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -9,7 +9,6 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 
-import { useEffect, useState, useNavigate, useRef } from "react";
 // ── Firebase config ──────────────────────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyAl-C7k3-M-Zg4Pgr9fijRzxmNFq3dkfD0",
@@ -131,9 +130,12 @@ function useParticleCanvas(canvasRef) {
     }
     function makeNode() {
       return {
-        x: Math.random() * W, y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-        r: Math.random() * 1.5 + 0.5, pulse: Math.random() * Math.PI * 2,
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 1.5 + 0.5,
+        pulse: Math.random() * Math.PI * 2,
       };
     }
     function init() {
@@ -146,7 +148,8 @@ function useParticleCanvas(canvasRef) {
       ctx.clearRect(0, 0, W, H);
       for (let i = 0; i < nodes.length; i++)
         for (let j = i + 1; j < nodes.length; j++) {
-          const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+          const dx = nodes[i].x - nodes[j].x,
+            dy = nodes[i].y - nodes[j].y;
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < 120) {
             ctx.strokeStyle = `rgba(10,180,120,${(1 - d / 120) * 0.12})`;
@@ -158,7 +161,9 @@ function useParticleCanvas(canvasRef) {
           }
         }
       nodes.forEach((n) => {
-        n.pulse += 0.02; n.x += n.vx; n.y += n.vy;
+        n.pulse += 0.02;
+        n.x += n.vx;
+        n.y += n.vy;
         if (n.x < 0 || n.x > W) n.vx *= -1;
         if (n.y < 0 || n.y > H) n.vy *= -1;
         const g = Math.sin(n.pulse) * 0.3 + 0.4;
@@ -173,13 +178,15 @@ function useParticleCanvas(canvasRef) {
     init();
     draw();
     window.addEventListener("resize", init);
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", init); };
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", init);
+    };
   }, [canvasRef]);
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function LoginPage() {
-  const navigate = useNavigate();
+export default function LoginPage({ onSuccess, onSignup, onBack }) {
   const canvasRef = useRef(null);
   useParticleCanvas(canvasRef);
 
@@ -194,10 +201,10 @@ export default function LoginPage() {
   useEffect(() => {
     injectStyles();
     const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) navigate("/dashboard");
+      if (user) onSuccess();
     });
     return unsub;
-  }, [navigate]);
+  }, []);
 
   function showError(msg) {
     setError(msg);
@@ -217,7 +224,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/dashboard");
+      onSuccess();
     } catch (err) {
       showError(authErrorMap[err.code] || err.message);
     } finally {
@@ -229,7 +236,7 @@ export default function LoginPage() {
     setSsoLoading((s) => ({ ...s, google: true }));
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate("/dashboard");
+      onSuccess();
     } catch (err) {
       if (err.code !== "auth/popup-closed-by-user") showError(err.message);
     } finally {
@@ -241,7 +248,7 @@ export default function LoginPage() {
     setSsoLoading((s) => ({ ...s, ms: true }));
     try {
       await signInWithPopup(auth, microsoftProvider);
-      navigate("/dashboard");
+      onSuccess();
     } catch (err) {
       if (err.code !== "auth/popup-closed-by-user") showError(err.message);
     } finally {
@@ -254,68 +261,199 @@ export default function LoginPage() {
     panelLeft: {
       position: "relative",
       background: "linear-gradient(160deg, #0a2e22 0%, #0a1a2e 100%)",
-      display: "flex", flexDirection: "column", justifyContent: "space-between",
-      padding: "48px", overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between",
+      padding: "48px",
+      overflow: "hidden",
     },
     leftBefore: {
-      position: "absolute", inset: 0,
+      position: "absolute",
+      inset: 0,
       background: `radial-gradient(ellipse 80% 60% at 30% 40%, rgba(10,124,92,0.22) 0%, transparent 60%),
                    radial-gradient(ellipse 60% 50% at 70% 70%, rgba(29,111,164,0.18) 0%, transparent 55%)`,
     },
-    canvas: { position: "absolute", inset: 0, zIndex: 1, width: "100%", height: "100%" },
+    canvas: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 1,
+      width: "100%",
+      height: "100%",
+    },
     leftContent: { position: "relative", zIndex: 2 },
-    leftLogo: { display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", marginBottom: "80px" },
+    leftLogo: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      textDecoration: "none",
+      marginBottom: "80px",
+    },
     leftHeadline: {
-      fontFamily: "var(--font,Syne,sans-serif)", fontSize: "clamp(28px,3vw,42px)", fontWeight: 800,
-      color: "#fff", lineHeight: 1.1, letterSpacing: "-0.8px", marginBottom: "18px",
+      fontFamily: "var(--font,Syne,sans-serif)",
+      fontSize: "clamp(28px,3vw,42px)",
+      fontWeight: 800,
+      color: "#fff",
+      lineHeight: 1.1,
+      letterSpacing: "-0.8px",
+      marginBottom: "18px",
     },
     headlineSpan: {
       background: "linear-gradient(90deg,#0d9970,#5bc4a0)",
-      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      backgroundClip: "text",
     },
-    leftSub: { fontSize: "15px", color: "rgba(255,255,255,0.55)", lineHeight: 1.7, maxWidth: "340px", marginBottom: "48px" },
+    leftSub: {
+      fontSize: "15px",
+      color: "rgba(255,255,255,0.55)",
+      lineHeight: 1.7,
+      maxWidth: "340px",
+      marginBottom: "48px",
+    },
     leftStats: { display: "flex", gap: "32px", flexWrap: "wrap" },
-    statVal: { fontFamily: "var(--font,Syne,sans-serif)", fontSize: "28px", fontWeight: 800, color: "#0d9970", lineHeight: 1, marginBottom: "4px" },
-    statLabel: { fontSize: "12px", color: "rgba(255,255,255,0.4)", fontFamily: "var(--mono,monospace)", letterSpacing: "0.04em" },
-    leftTrust: { display: "flex", flexDirection: "column", gap: "12px", position: "relative", zIndex: 2 },
+    statVal: {
+      fontFamily: "var(--font,Syne,sans-serif)",
+      fontSize: "28px",
+      fontWeight: 800,
+      color: "#0d9970",
+      lineHeight: 1,
+      marginBottom: "4px",
+    },
+    statLabel: {
+      fontSize: "12px",
+      color: "rgba(255,255,255,0.4)",
+      fontFamily: "var(--mono,monospace)",
+      letterSpacing: "0.04em",
+    },
+    leftTrust: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      position: "relative",
+      zIndex: 2,
+    },
     trustPillText: { fontSize: "13px", color: "rgba(255,255,255,0.65)" },
     panelRight: {
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "48px 40px", background: "var(--bg,#fdf8f2)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "48px 40px",
+      background: "var(--bg,#fdf8f2)",
     },
     authBox: { width: "100%", maxWidth: "420px" },
     authTag: {
-      display: "inline-flex", alignItems: "center", gap: "6px",
-      background: "rgba(10,124,92,0.09)", border: "1px solid rgba(10,124,92,0.25)",
-      borderRadius: "20px", padding: "5px 12px", fontFamily: "var(--mono,monospace)",
-      fontSize: "10px", fontWeight: 600, color: "#0a7c5c", letterSpacing: "0.08em",
-      textTransform: "uppercase", marginBottom: "16px",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      background: "rgba(10,124,92,0.09)",
+      border: "1px solid rgba(10,124,92,0.25)",
+      borderRadius: "20px",
+      padding: "5px 12px",
+      fontFamily: "var(--mono,monospace)",
+      fontSize: "10px",
+      fontWeight: 600,
+      color: "#0a7c5c",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      marginBottom: "16px",
     },
     authTitle: {
-      fontFamily: "var(--font,Syne,sans-serif)", fontSize: "clamp(24px,3vw,32px)",
-      fontWeight: 800, color: "#1e1a14", letterSpacing: "-0.6px", marginBottom: "6px",
+      fontFamily: "var(--font,Syne,sans-serif)",
+      fontSize: "clamp(24px,3vw,32px)",
+      fontWeight: 800,
+      color: "#1e1a14",
+      letterSpacing: "-0.6px",
+      marginBottom: "6px",
     },
-    authSubtitle: { fontSize: "14px", color: "#5a4f3f", marginBottom: "32px", lineHeight: 1.6 },
-    ssoRow: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "24px" },
-    divider: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" },
+    authSubtitle: {
+      fontSize: "14px",
+      color: "#5a4f3f",
+      marginBottom: "32px",
+      lineHeight: 1.6,
+    },
+    ssoRow: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "10px",
+      marginBottom: "24px",
+    },
+    divider: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      marginBottom: "24px",
+    },
     dividerLine: { flex: 1, height: "1px", background: "rgba(90,60,20,0.10)" },
-    dividerText: { fontFamily: "var(--mono,monospace)", fontSize: "10px", color: "#9c8e7a", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" },
+    dividerText: {
+      fontFamily: "var(--mono,monospace)",
+      fontSize: "10px",
+      color: "#9c8e7a",
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      whiteSpace: "nowrap",
+    },
     formGroup: { marginBottom: "16px" },
     formLabel: {
-      display: "block", fontSize: "12px", fontWeight: 600, color: "#5a4f3f",
-      marginBottom: "7px", fontFamily: "var(--mono,monospace)", letterSpacing: "0.04em", textTransform: "uppercase",
+      display: "block",
+      fontSize: "12px",
+      fontWeight: 600,
+      color: "#5a4f3f",
+      marginBottom: "7px",
+      fontFamily: "var(--mono,monospace)",
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
     },
     passwordWrap: { position: "relative" },
     passwordToggle: {
-      position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)",
-      background: "none", border: "none", cursor: "pointer", color: "#9c8e7a",
-      padding: "4px", display: "flex", alignItems: "center",
+      position: "absolute",
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      color: "#9c8e7a",
+      padding: "4px",
+      display: "flex",
+      alignItems: "center",
     },
-    formFooterRow: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" },
-    rememberLabel: { display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#5a4f3f", cursor: "pointer" },
-    forgotLink: { fontSize: "13px", color: "#0a7c5c", textDecoration: "none", fontWeight: 600 },
-    signupRow: { textAlign: "center", marginTop: "24px", fontSize: "13px", color: "#5a4f3f" },
-    link: { color: "#0a7c5c", fontWeight: 600, textDecoration: "none" },
+    formFooterRow: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: "20px",
+    },
+    rememberLabel: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      fontSize: "13px",
+      color: "#5a4f3f",
+      cursor: "pointer",
+    },
+    forgotLink: {
+      fontSize: "13px",
+      color: "#0a7c5c",
+      textDecoration: "none",
+      fontWeight: 600,
+    },
+    signupRow: {
+      textAlign: "center",
+      marginTop: "24px",
+      fontSize: "13px",
+      color: "#5a4f3f",
+    },
+    link: {
+      color: "#0a7c5c",
+      fontWeight: 600,
+      textDecoration: "none",
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontSize: "inherit",
+      fontFamily: "inherit",
+      padding: 0,
+    },
   };
 
   return (
@@ -327,19 +465,31 @@ export default function LoginPage() {
 
         <div style={s.leftContent}>
           <a href="/" style={s.leftLogo}>
-            <img src="/solid-5-white.svg" style={{ width: "120px" }} alt="Solid5 Shield" />
+            <img
+              src="/solid-5-white.svg"
+              style={{ width: "120px" }}
+              alt="Solid5 Shield"
+            />
           </a>
 
           <h2 style={s.leftHeadline}>
-            Welcome<br />back to your<br />
+            Welcome
+            <br />
+            back to your
+            <br />
             <span style={s.headlineSpan}>shield.</span>
           </h2>
           <p style={s.leftSub}>
-            Your AI-powered inbox guardian is ready. Sign in to see your real-time threat dashboard.
+            Your AI-powered inbox guardian is ready. Sign in to see your
+            real-time threat dashboard.
           </p>
 
           <div style={s.leftStats}>
-            {[["14", "checks per email"], ["<2s", "scan time"], ["98%", "accuracy"]].map(([val, label]) => (
+            {[
+              ["14", "checks per email"],
+              ["<2s", "scan time"],
+              ["98%", "accuracy"],
+            ].map(([val, label]) => (
               <div key={label}>
                 <div style={s.statVal}>{val}</div>
                 <div style={s.statLabel}>{label}</div>
@@ -351,17 +501,48 @@ export default function LoginPage() {
         <div style={s.leftTrust}>
           {[
             {
-              icon: <path d="M12 2L4 6v7c0 4.5 3.5 7.5 8 9 4.5-1.5 8-4.5 8-9V6L12 2z" />,
-              text: <><strong style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>Read-only access</strong> — we never touch your emails</>,
+              icon: (
+                <path d="M12 2L4 6v7c0 4.5 3.5 7.5 8 9 4.5-1.5 8-4.5 8-9V6L12 2z" />
+              ),
+              text: (
+                <>
+                  <strong
+                    style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}
+                  >
+                    Read-only access
+                  </strong>{" "}
+                  — we never touch your emails
+                </>
+              ),
             },
             {
-              icon: <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
-              text: <><strong style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}>POPIA compliant</strong> · Zero email storage</>,
+              icon: (
+                <path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ),
+              text: (
+                <>
+                  <strong
+                    style={{ color: "rgba(255,255,255,0.9)", fontWeight: 600 }}
+                  >
+                    POPIA compliant
+                  </strong>{" "}
+                  · Zero email storage
+                </>
+              ),
             },
           ].map((pill, i) => (
             <div key={i} className="trust-pill">
               <div className="trust-pill-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#0d9970" strokeWidth="1.8" width="14" height="14">{pill.icon}</svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0d9970"
+                  strokeWidth="1.8"
+                  width="14"
+                  height="14"
+                >
+                  {pill.icon}
+                </svg>
               </div>
               <div style={s.trustPillText}>{pill.text}</div>
             </div>
@@ -380,26 +561,48 @@ export default function LoginPage() {
           <h1 style={s.authTitle}>Sign in to Shield</h1>
           <p style={s.authSubtitle}>
             New to Solid5?{" "}
-            <a href="/signup" style={s.link}>Create a free account →</a>
+            <button onClick={onSignup} style={s.link}>
+              Create a free account →
+            </button>
           </p>
 
           {/* SSO buttons */}
           <div style={s.ssoRow}>
-            <button className="shield-sso-btn" onClick={handleGoogle} disabled={ssoLoading.google}>
+            <button
+              className="shield-sso-btn"
+              onClick={handleGoogle}
+              disabled={ssoLoading.google}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                <path
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  fill="#EA4335"
+                />
               </svg>
               {ssoLoading.google ? "Signing in…" : "Continue with Google"}
             </button>
-            <button className="shield-sso-btn ms" onClick={handleMicrosoft} disabled={ssoLoading.ms}>
+            <button
+              className="shield-sso-btn ms"
+              onClick={handleMicrosoft}
+              disabled={ssoLoading.ms}
+            >
               <svg width="16" height="16" viewBox="0 0 23 23">
-                <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
-                <rect x="12" y="1" width="10" height="10" fill="#7fba00"/>
-                <rect x="1" y="12" width="10" height="10" fill="#00a4ef"/>
-                <rect x="12" y="12" width="10" height="10" fill="#ffb900"/>
+                <rect x="1" y="1" width="10" height="10" fill="#f25022" />
+                <rect x="12" y="1" width="10" height="10" fill="#7fba00" />
+                <rect x="1" y="12" width="10" height="10" fill="#00a4ef" />
+                <rect x="12" y="12" width="10" height="10" fill="#ffb900" />
               </svg>
               {ssoLoading.ms ? "Signing in…" : "Continue with Microsoft"}
             </button>
@@ -414,7 +617,12 @@ export default function LoginPage() {
           {/* Error */}
           <div className={`shield-error-msg${error ? " visible" : ""}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 8v5m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#dc2626" strokeWidth="1.8" strokeLinecap="round"/>
+              <path
+                d="M12 8v5m0 3h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                stroke="#dc2626"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
             </svg>
             <span>{error}</span>
           </div>
@@ -422,19 +630,25 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleEmailLogin} noValidate>
             <div style={s.formGroup}>
-              <label style={s.formLabel} htmlFor="email">Email address</label>
+              <label style={s.formLabel} htmlFor="email">
+                Email address
+              </label>
               <input
                 className="shield-form-input"
-                type="email" id="email"
+                type="email"
+                id="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required autoComplete="email"
+                required
+                autoComplete="email"
               />
             </div>
 
             <div style={s.formGroup}>
-              <label style={s.formLabel} htmlFor="password">Password</label>
+              <label style={s.formLabel} htmlFor="password">
+                Password
+              </label>
               <div style={s.passwordWrap}>
                 <input
                   className="shield-form-input"
@@ -443,19 +657,47 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required autoComplete="current-password"
+                  required
+                  autoComplete="current-password"
                   style={{ paddingRight: "40px" }}
                 />
-                <button type="button" style={s.passwordToggle} onClick={() => setShowPwd((v) => !v)}>
+                <button
+                  type="button"
+                  style={s.passwordToggle}
+                  onClick={() => setShowPwd((v) => !v)}
+                >
                   {showPwd ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                      <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                      <path
+                        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1="1"
+                        y1="1"
+                        x2="23"
+                        y2="23"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
                     </svg>
                   ) : (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.8"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8"/>
+                      <path
+                        d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="3"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      />
                     </svg>
                   )}
                 </button>
@@ -465,13 +707,21 @@ export default function LoginPage() {
             <div style={s.formFooterRow}>
               <label style={s.rememberLabel}>
                 <input
-                  type="checkbox" checked={remember}
+                  type="checkbox"
+                  checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  style={{ width: "15px", height: "15px", accentColor: "#0a7c5c", cursor: "pointer" }}
+                  style={{
+                    width: "15px",
+                    height: "15px",
+                    accentColor: "#0a7c5c",
+                    cursor: "pointer",
+                  }}
                 />
                 Remember me
               </label>
-              <a href="/forgot-password" style={s.forgotLink}>Forgot password?</a>
+              <a href="mailto:support@solid5.co.za" style={s.forgotLink}>
+                Forgot password?
+              </a>
             </div>
 
             <button
@@ -485,8 +735,21 @@ export default function LoginPage() {
 
           <div style={s.signupRow}>
             Don&apos;t have an account?{" "}
-            <a href="/signup" style={s.link}>Sign up free</a>
+            <button onClick={onSignup} style={s.link}>
+              Sign up free
+            </button>
           </div>
+
+          {onBack && (
+            <div style={{ textAlign: "center", marginTop: "12px" }}>
+              <button
+                onClick={onBack}
+                style={{ ...s.link, fontSize: "12px", color: "#9c8e7a" }}
+              >
+                ← Back to home
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

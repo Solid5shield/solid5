@@ -1,5 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { analyzeEmail } from "../services/api";
+import { getApps, initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+
+const _fbConfig = {
+  apiKey: "AIzaSyAl-C7k3-M-Zg4Pgr9fijRzxmNFq3dkfD0",
+  authDomain: "solid5.firebaseapp.com",
+  projectId: "solid5",
+  storageBucket: "solid5.firebasestorage.app",
+  messagingSenderId: "913140407310",
+  appId: "1:913140407310:web:58787c967f27d25947b05f",
+};
+const _fbApp = getApps().length ? getApps()[0] : initializeApp(_fbConfig);
+const _auth = getAuth(_fbApp);
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 
@@ -53,7 +66,34 @@ const styles = `
     background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,100,150,0.012) 2px, rgba(0,100,150,0.012) 4px);
     pointer-events: none; z-index: 9999;
   }
-
+.sb-user-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border2);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg3);
+  flex-shrink: 0;
+}
+.sb-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff; font-family: var(--mono);
+  overflow: hidden;
+}
+.sb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sb-user-info { flex: 1; min-width: 0; }
+.sb-user-name  { font-size: 10px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-email { font-size: 9px; color: var(--text3); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.sb-logout-btn {
+  flex-shrink: 0; background: none; border: 1px solid var(--border2);
+  border-radius: 4px; padding: 4px 7px; cursor: pointer; color: var(--text3);
+  font-size: 9px; font-family: var(--mono); font-weight: 600;
+  transition: all 0.15s; letter-spacing: 0.04em;
+}
+.sb-logout-btn:hover { color: var(--red); border-color: var(--redbd); background: var(--redbg); }
   .app { display: flex; flex-direction: column; height: 100%; width: 100%; background: var(--bg); }
 
   .topbar {
@@ -2324,6 +2364,7 @@ export default function FraudShield() {
   const [manualInput, setManualInput] = useState("");
   const [filter, setFilter] = useState("all");
   const [tab, setTab] = useState("monitor");
+  const [currentUser, setCurrentUser] = useState(null);
   const [auditLog, setAuditLog] = useState([
     makeAuditEntry("system", "FraudShield Enterprise v3.0 started", "at-scan"),
   ]);
@@ -2422,7 +2463,10 @@ export default function FraudShield() {
     };
     load();
   }, []);
-
+useEffect(() => {
+  const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
+  return unsub;
+}, []);
   const handleConnect = (id) => {
     setConnected((prev) => ({ ...prev, [id]: true }));
     setModal(null);
@@ -2658,6 +2702,30 @@ export default function FraudShield() {
                     />
                   </div>
                 </div>
+                {/* ── User footer ── */}
+          <div className="sb-user-footer">
+            <div className="sb-avatar">
+              {currentUser?.photoURL
+                ? <img src={currentUser.photoURL} alt="avatar" />
+                : (currentUser?.displayName?.[0] || currentUser?.email?.[0] || "?").toUpperCase()
+              }
+            </div>
+            <div className="sb-user-info">
+              <div className="sb-user-name">
+                {currentUser?.displayName || "Guest User"}
+              </div>
+              <div className="sb-user-email">
+                {currentUser?.email || "Not signed in"}
+              </div>
+            </div>
+            <button
+              className="sb-logout-btn"
+              onClick={() => signOut(_auth).catch(console.error)}
+              title="Sign out"
+            >
+              OUT
+            </button>
+          </div>
               </div>
 
               <div className="email-pane">
