@@ -1,0 +1,40 @@
+# wrangler.toml
+# Solid5 Shield — Cloudflare Worker configuration
+# Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name       = "solid5-shield-api"
+main       = "index.js"
+compatibility_date = "2024-01-01"
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+# Option A: custom domain (recommended for production)
+# routes = [{ pattern = "api.shield.solid5.co.za/*", zone_name = "solid5.co.za" }]
+
+# Option B: workers.dev subdomain (default, works immediately)
+# Your worker will be at: https://solid5-shield-api.<your-subdomain>.workers.dev
+
+# ── Environment variables (NON-SECRET) ────────────────────────────────────────
+# These are safe to commit. Secrets are set via `wrangler secret put` below.
+[vars]
+ALLOWED_ORIGIN    = "http://localhost:5173"   # ← change to your prod domain
+WORKER_URL        = "https://solid5-shield-api.<your-subdomain>.workers.dev"
+
+# ── Production environment overrides ──────────────────────────────────────────
+[env.production]
+[env.production.vars]
+ALLOWED_ORIGIN = "https://shield.solid5.co.za"   # ← your prod frontend URL
+WORKER_URL     = "https://api.shield.solid5.co.za"
+
+# ── Secrets (set these via CLI — never commit values) ─────────────────────────
+# Run once per secret:
+#
+#   wrangler secret put CLAUDE_API_KEY
+#   wrangler secret put FIREBASE_PROJECT_ID
+#   wrangler secret put MS_CLIENT_ID
+#   wrangler secret put MS_CLIENT_SECRET
+#   wrangler secret put MS_TENANT_ID
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+#   wrangler secret put SLACK_WEBHOOK_URL
+#   wrangler secret put SIEM_WEBHOOK_URL      # optional — Splunk HEC URL
+#   wrangler secret put SIEM_TOKEN            # optional — Splunk HEC token
