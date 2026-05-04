@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import logo from '../assets/solid-5.svg';
+import cyber from '../assets/videos/cyber.mp4'
 // ── Global CSS injected once ──────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -458,7 +459,7 @@ export default function LandingPage({ onLogin, onSignup }) {
       {/* ── HERO ── */}
       <section className="lp-hero">
         <video className="lp-hero-video" autoPlay muted loop playsInline>
-          <source src="/src/assets/videos/cyber.mp4" type="video/mp4" />
+          <source src={cyber} type="video/mp4" />
         </video>
         <canvas ref={canvasRef} className="lp-hero-canvas" />
         <div className="lp-hero-overlay" />
