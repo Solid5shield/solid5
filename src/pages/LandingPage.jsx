@@ -437,7 +437,7 @@ export default function LandingPage({ onLogin, onSignup }) {
         <a className="lp-nav-logo" href="/">
           <div className="lp-nav-logo-text">
             <img
-              src="/solid-5.svg"
+              src="solid-5.svg"
               style={{ width: "120px" }}
               alt="Solid5 Shield"
             />
