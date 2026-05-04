@@ -1,29 +1,32 @@
 // src/App.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FraudShield from "./pages/FraudShield";
 import LoginPage from "./pages/LoginPage";
-import LandingPage from "./pages/LandingPage"; // ← import your landing page
 
 export default function App() {
-  const [view, setView] = useState("landing"); // ← start at landing now
+  const [view, setView] = useState("login"); // app always starts at login/dashboard
+
+  useEffect(() => {
+    // If linked from landing page with a hash, respect it
+    if (window.location.hash === "#signup") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setView("login");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   return (
     <AuthProvider>
-      {view === "landing" ? (
-        <LandingPage
-          onGetStarted={() => setView("login")}   // CTA → login
-          onLogin={() => setView("login")}         // "Sign in" link → login
-        />
-      ) : view === "dashboard" ? (
+      {view === "dashboard" ? (
         <ProtectedRoute onRedirect={() => setView("login")}>
           <FraudShield />
         </ProtectedRoute>
       ) : (
         <LoginPage
           onSuccess={() => setView("dashboard")}
-          onBack={() => setView("landing")}        // optional back link
+          onBack={() => { window.location.href = "/landing.html"; }}
         />
       )}
     </AuthProvider>
