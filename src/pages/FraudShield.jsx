@@ -1,18 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { analyzeEmail } from "../services/api";
-import { getApps, initializeApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-
-const _fbConfig = {
-  apiKey: "AIzaSyAl-C7k3-M-Zg4Pgr9fijRzxmNFq3dkfD0",
-  authDomain: "solid5.firebaseapp.com",
-  projectId: "solid5",
-  storageBucket: "solid5.firebasestorage.app",
-  messagingSenderId: "913140407310",
-  appId: "1:913140407310:web:58787c967f27d25947b05f",
-};
-const _fbApp = getApps().length ? getApps()[0] : initializeApp(_fbConfig);
-const _auth = getAuth(_fbApp);
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth as _auth } from "../firebase";
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 

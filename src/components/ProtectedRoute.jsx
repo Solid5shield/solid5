@@ -1,39 +1,25 @@
 // src/components/ProtectedRoute.jsx
+import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
-/**
- * Wraps any component that requires authentication.
- *
- * States:
- *  • Loading  → shows a branded splash screen while Firebase resolves the session
- *  • Unauthed → calls onRedirect() so the parent can swap to the Login view
- *  • Authed   → renders children normally
- */
 export default function ProtectedRoute({ children, onRedirect }) {
   const { user, loading } = useAuth();
 
-  // ── 1. Firebase is still resolving the persisted session ──────────────────
-  if (loading) {
-    return <LoadingScreen />;
-  }
+  useEffect(() => {
+    if (!loading && !user) {
+      onRedirect();
+    }
+  }, [loading, user, onRedirect]);
 
-  // ── 2. No user — trigger the redirect callback ────────────────────────────
-  if (!user) {
-    // Use a microtask so we don't call setState during render
-    Promise.resolve().then(onRedirect);
-    return null;
-  }
-
-  // ── 3. Authenticated — render the protected content ───────────────────────
+  if (loading) return <LoadingScreen />;
+  if (!user) return null;
   return children;
 }
 
-// ── Branded loading screen ─────────────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div style={styles.root}>
       <div style={styles.card}>
-        {/* Shield icon */}
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" style={styles.icon}>
           <path
             d="M12 2L4 6v7c0 4.5 3.5 7.5 8 9 4.5-1.5 8-4.5 8-9V6L12 2z"
@@ -48,15 +34,11 @@ function LoadingScreen() {
             </linearGradient>
           </defs>
         </svg>
-
         <p style={styles.label}>Verifying session…</p>
-
-        {/* Animated bar */}
         <div style={styles.track}>
           <div style={styles.bar} />
         </div>
       </div>
-
       <style>{`
         @keyframes slide {
           0%   { transform: translateX(-100%); }

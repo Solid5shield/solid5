@@ -1,5 +1,7 @@
 // src/App.jsx
 import { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase"; // ← shared instance, no duplicate init
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FraudShield from "./pages/FraudShield";
@@ -10,51 +12,69 @@ import LandingPage from "./pages/LandingPage";
 
 export default function App() {
   const [view, setView] = useState(() => {
-    // Check URL path first, before anything else
     if (window.location.pathname === "/oauth/callback") return "zoho-callback";
     if (window.location.hash === "#signup") return "signup";
-    return "landing";
+    return sessionStorage.getItem("appView") || "landing";
   });
 
-  useEffect(() => {
-    if (view === "signup") {
-      window.history.replaceState(null, "", window.location.pathname);
+  const navigate = (newView) => {
+    if (["landing", "login", "signup"].includes(newView)) {
+      sessionStorage.removeItem("appView");
+    } else {
+      sessionStorage.setItem("appView", newView);
     }
+    setView(newView);
+  };
+
+  // Firebase auth state — single listener using shared auth instance
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        sessionStorage.setItem("appView", "dashboard");
+        setView((prev) =>
+          ["landing", "login", "signup"].includes(prev) ? "dashboard" : prev,
+        );
+      } else {
+        sessionStorage.removeItem("appView");
+        setView((prev) => (prev === "dashboard" ? "landing" : prev));
+      }
+    });
+    return unsub;
   }, []);
 
-  // Check for connected=zoho param after callback redirects back
+  // Handle OAuth redirect back (?connected=gmail etc.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("connected") === "zoho") {
+    if (params.get("connected")) {
       window.history.replaceState(null, "", window.location.pathname);
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setView("dashboard");
+      navigate("dashboard");
     }
   }, []);
 
   return (
     <AuthProvider>
       {view === "zoho-callback" ? (
-        <ZohoCallback onDone={() => setView("dashboard")} />
+        <ZohoCallback onDone={() => navigate("dashboard")} />
       ) : view === "dashboard" ? (
-        <ProtectedRoute onRedirect={() => setView("login")}>
+        <ProtectedRoute onRedirect={() => navigate("login")}>
           <FraudShield />
         </ProtectedRoute>
       ) : view === "signup" ? (
         <SignupPage
-          onSuccess={() => setView("login")}
-          onBack={() => setView("landing")}
+          onSuccess={() => navigate("login")}
+          onBack={() => navigate("landing")}
         />
       ) : view === "login" ? (
         <LoginPage
-          onSuccess={() => setView("dashboard")}
-          onSignup={() => setView("signup")}
-          onBack={() => setView("landing")}
+          onSuccess={() => navigate("dashboard")}
+          onSignup={() => navigate("signup")}
+          onBack={() => navigate("landing")}
         />
       ) : (
         <LandingPage
-          onLogin={() => setView("login")}
-          onSignup={() => setView("signup")}
+          onLogin={() => navigate("login")}
+          onSignup={() => navigate("signup")}
         />
       )}
     </AuthProvider>
