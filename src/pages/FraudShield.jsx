@@ -886,7 +886,72 @@ function runLocalChecks(email) {
   checks.numSubstitution = (domain.match(/[0-9]/g) || []).length >= 2;
   return checks;
 }
+function runBarracudaChecks(email) {
+  const subject = (email.subject || "").toLowerCase();
+  const name    = (email.name    || "").toLowerCase();
+  const domain  = (email.from?.split("@")[1] || "").toLowerCase();
 
+  // ── Intent signals (mirrors Barracuda's 13 email threat types) ───────────
+  const urgencyWords   = ["urgent", "immediate", "act now", "verify now", "suspended", "locked", "expire", "limited time", "account disabled"];
+  const harvestWords   = ["password", "login", "sign in", "verify", "confirm your", "update your account", "click here", "validate"];
+  const invoiceWords   = ["invoice", "payment due", "wire transfer", "remittance", "bank details", "ach", "swift"];
+  const impersonWords  = ["paypal", "microsoft", "google", "amazon", "apple", "netflix", "fedex", "dhl", "ups", "irs", "hmrc", "bank", "support team", "it helpdesk", "security team"];
+  const scamWords      = ["you have won", "lottery", "inheritance", "transfer funds", "million dollars", "beneficiary", "unclaimed"];
+
+  const hasUrgency      = urgencyWords.some(w => subject.includes(w));
+  const hasHarvest      = harvestWords.some(w => subject.includes(w));
+  const hasInvoiceBait  = invoiceWords.some(w => subject.includes(w));
+  const hasImpersonation= impersonWords.some(w => name.includes(w) || subject.includes(w));
+  const hasScamPattern  = scamWords.some(w => subject.includes(w));
+
+  // ── Sender anomaly checks ─────────────────────────────────────────────────
+  const freeProviders   = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "protonmail.com", "icloud.com"];
+  const senderOnFree    = freeProviders.includes(domain);
+  const mismatchedName  = hasImpersonation && senderOnFree; // e.g. "PayPal Support" from gmail.com
+
+  // ── Conversation hijacking indicators ─────────────────────────────────────
+  const replyChain      = /^(re:|fwd?:)/i.test(email.subject || "");
+  const hijackRisk      = replyChain && (hasUrgency || hasHarvest);
+
+  // ── BEC (Business Email Compromise) signals ───────────────────────────────
+  const becWords        = ["ceo", "executive", "wire", "transfer", "confidential", "do not forward", "between us", "directly to me"];
+  const hasBEC          = becWords.some(w => subject.includes(w) || name.includes(w));
+
+  // ── Threat type classification (Barracuda's 13 types condensed) ──────────
+  let threatType = null;
+  if (hasScamPattern)          threatType = "Scamming";
+  else if (hasBEC)             threatType = "Business Email Compromise";
+  else if (hasInvoiceBait)     threatType = "Invoice Fraud";
+  else if (mismatchedName)     threatType = "Brand Impersonation";
+  else if (hasHarvest)         threatType = "Credential Phishing";
+  else if (hasUrgency)         threatType = "Spear Phishing";
+  else if (hijackRisk)         threatType = "Conversation Hijacking";
+
+  // ── Risk score contribution (0–40 points on top of domain checks) ────────
+  let intentScore = 0;
+  if (hasUrgency)       intentScore += 10;
+  if (hasHarvest)       intentScore += 12;
+  if (hasInvoiceBait)   intentScore += 10;
+  if (mismatchedName)   intentScore += 15;
+  if (hasBEC)           intentScore += 18;
+  if (hasScamPattern)   intentScore += 20;
+  if (hijackRisk)       intentScore += 8;
+  if (senderOnFree)     intentScore += 5;
+
+  return {
+    hasUrgency,
+    hasHarvest,
+    hasInvoiceBait,
+    hasImpersonation,
+    hasScamPattern,
+    senderOnFree,
+    mismatchedName,
+    hijackRisk,
+    hasBEC,
+    threatType,
+    intentScore,
+  };
+}
 function simulateThreatIntel(domain) {
   const knownBad = [
     "paypa1.com",
@@ -920,38 +985,49 @@ function simulateThreatIntel(domain) {
 }
 
 async function analyzeWithClaude(email) {
-  const domain = email.from.split("@")[1];
-  const trusted = email.trusted || "unknown";
+  const domain      = email.from.split("@")[1];
+  const trusted     = email.trusted || "unknown";
   const localChecks = runLocalChecks(email);
+  const bcChecks    = runBarracudaChecks(email);   // ← add this
   const threatIntel = simulateThreatIntel(domain);
 
-  // Build the same prompt as before — Worker forwards it to Claude
-  const prompt = `You are Solid5Shiled Enterprise, an AI security analyst. Perform deep domain trust analysis.
+  const prompt = `You are Solid5Shield Enterprise, an AI security analyst combining Barracuda Networks + domain intelligence.
 Sender: ${email.from}
 Domain: ${domain}
 Claimed entity: ${email.name}
 Subject: "${email.subject}"
 Known trusted domain: ${trusted}
-LOCAL CHECKS:
+
+LOCAL DOMAIN CHECKS:
 SPF: ${localChecks.spf} | DKIM: ${localChecks.dkim} | DMARC: ${localChecks.dmarc}
 Subdomain abuse: ${localChecks.subdomainAbuse} | Domain padding: ${localChecks.domainPadding}
 Suspicious TLD: ${localChecks.suspiciousTLD} | TLD switch: ${localChecks.tldSwitch}
 Homograph: ${localChecks.homograph} | Levenshtein dist: ${localChecks.typosquatDist}
+
+BARRACUDA INTENT ANALYSIS:
+Threat type: ${bcChecks.threatType || "none detected"}
+Urgency triggers: ${bcChecks.hasUrgency ? "YES" : "no"}
+Credential harvest: ${bcChecks.hasHarvest ? "YES" : "no"}
+Invoice/wire bait: ${bcChecks.hasInvoiceBait ? "YES" : "no"}
+Brand impersonation: ${bcChecks.mismatchedName ? "YES — name claims brand but sends from free provider" : "no"}
+BEC indicators: ${bcChecks.hasBEC ? "YES" : "no"}
+Conversation hijack: ${bcChecks.hijackRisk ? "YES" : "no"}
+Sender on free provider: ${bcChecks.senderOnFree ? domain : "no"}
+Intent risk score: ${bcChecks.intentScore}/40
+
 THREAT INTEL:
 VirusTotal: ${threatIntel.virustotal}
 PhishTank: ${threatIntel.phishtank}
 Spamhaus: ${threatIntel.spamhaus}
 Domain age: ${threatIntel.domain_age}
+
 Respond ONLY with valid JSON:
 {"risk":"high|medium|low","similarity_score":0-100,"verdict":"One concise technical verdict sentence","attack_type":"Specific attack vector or null","confidence":0-100,"signals":[{"type":"danger|warning|ok|info","text":"description"}],"explanation":"2-3 plain English sentences for business users","recommended_action":"block|quarantine|review|allow","employee_alert":"One sentence awareness tip"}`;
 
-  // analyzeEmail sends to the Worker (authenticated), Worker calls Claude
-  // High-risk results auto-trigger Slack/SIEM webhooks server-side
   const result = await analyzeEmail(email, prompt);
-
-  // Attach local computed data (unchanged)
-  result._localChecks = localChecks;
-  result._threatIntel = threatIntel;
+  result._localChecks    = localChecks;
+  result._threatIntel    = threatIntel;
+  result._barracudaChecks = bcChecks;   // ← attach for UI use
   return result;
 }
 
@@ -1051,6 +1127,7 @@ function ConnectModal({ provider, onClose, onConnect }) {
 
 function CheckGrid({ localChecks, result }) {
   if (!localChecks) return null;
+  const bc = result?._barracudaChecks;
   const items = [
     {
       name: "SPF",
@@ -1146,6 +1223,56 @@ function CheckGrid({ localChecks, result }) {
       color: localChecks.longDomain ? "cv-o" : "cv-g",
       cls: localChecks.longDomain ? "warn" : "pass",
     },
+    ...(bc ? [
+      {
+        name: "Intent",
+        val:   bc.threatType || "CLEAN ✓",
+        color: bc.threatType ? "cv-r" : "cv-g",
+        cls:   bc.threatType ? "fail" : "pass",
+      },
+      {
+        name: "BEC Risk",
+        val:   bc.hasBEC ? "YES ✕" : "NO ✓",
+        color: bc.hasBEC ? "cv-r" : "cv-g",
+        cls:   bc.hasBEC ? "fail" : "pass",
+      },
+      {
+        name: "Harvest",
+        val:   bc.hasHarvest ? "YES ✕" : "NO ✓",
+        color: bc.hasHarvest ? "cv-r" : "cv-g",
+        cls:   bc.hasHarvest ? "fail" : "pass",
+      },
+      {
+        name: "Urgency",
+        val:   bc.hasUrgency ? "YES ✕" : "NO ✓",
+        color: bc.hasUrgency ? "cv-o" : "cv-g",
+        cls:   bc.hasUrgency ? "warn" : "pass",
+      },
+      {
+        name: "Invoice",
+        val:   bc.hasInvoiceBait ? "YES ✕" : "NO ✓",
+        color: bc.hasInvoiceBait ? "cv-r" : "cv-g",
+        cls:   bc.hasInvoiceBait ? "fail" : "pass",
+      },
+      {
+        name: "Free Sender",
+        val:   bc.senderOnFree ? "YES ✕" : "NO ✓",
+        color: bc.senderOnFree ? "cv-o" : "cv-g",
+        cls:   bc.senderOnFree ? "warn" : "pass",
+      },
+      {
+        name: "Hijack",
+        val:   bc.hijackRisk ? "YES ✕" : "NO ✓",
+        color: bc.hijackRisk ? "cv-r" : "cv-g",
+        cls:   bc.hijackRisk ? "fail" : "pass",
+      },
+      {
+        name: "Impersonation",
+        val:   bc.mismatchedName ? "YES ✕" : "NO ✓",
+        color: bc.mismatchedName ? "cv-r" : "cv-g",
+        cls:   bc.mismatchedName ? "fail" : "pass",
+      },
+    ] : []),
   ];
   return (
     <div className="section">
