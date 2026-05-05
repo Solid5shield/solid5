@@ -2485,7 +2485,7 @@ export default function Solid5Shiled() {
 
       for (const provider of providers) {
         try {
-          const res = await fetch(`/api/emails?provider=${provider}`, {
+          const res = await fetch(`${WORKER_URL}/api/emails?provider=${provider}`, {
             headers: { Authorization: `Bearer ${idToken}` },
           });
 
@@ -2501,7 +2501,14 @@ export default function Solid5Shiled() {
             processQueue();
           }
 
-          setConnected((prev) => ({ ...prev, [provider]: true }));
+         setConnected((prev) => {
+  const updated = { ...prev, [provider]: true };
+  // Auto-switch to first connected provider
+  setActiveProvider(prev2 => 
+    Object.keys(updated)[0] || prev2
+  );
+  return updated;
+});
         } catch {
           // Provider fetch failed — continue with others
         }
@@ -2578,7 +2585,8 @@ const handleConnect = (providerId) => {
     (r) => r.risk === "high",
   ).length;
   const pendingCount = emails.filter((e) => !analysis[e.id]).length;
-
+const isLoading = emails.filter(e => e.provider === activeProvider).length === 0 
+  && Object.keys(connected).length === 0;
   const TABS = [
     {
       id: "monitor",
@@ -2820,12 +2828,14 @@ const handleConnect = (providerId) => {
                   </div>
                 </div>
                 <div className="email-list">
-                  {filteredEmails.length === 0 ? (
-                    <div className="loading-state">
-                      <div className="spinner" />
-                      Loading & analyzing emails…
-                    </div>
-                  ) : (
+                  {isLoading ? (
+  <div className="loading-state"><div className="spinner" />Loading emails…</div>
+) : filteredEmails.length === 0 ? (
+  <div className="loading-state" style={{color:'var(--text3)'}}>
+    No {filter !== 'all' ? filter+'-risk ' : ''}emails for this provider.
+    {!connected[activeProvider] && <><br/>Click "+ Connect" to link your account.</>}
+  </div>
+): (
                     filteredEmails.map((e) => (
                       <div
                         key={e.id}
