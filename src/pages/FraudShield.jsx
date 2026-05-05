@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { analyzeEmail } from "../services/api";
+import logo from '../assets/solid-5.svg';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth as _auth } from "../firebase";
 const styles = `
@@ -2615,8 +2616,7 @@ const isLoading = emails.filter(e => e.provider === activeProvider).length === 0
           <div className="logo-wrap">
             <div className="logo-mark" />
             <div className="logo-text">
-              <h1>SOLID5SHIELD</h1>
-              <p>Enterprise Identity Protection v3.0</p>
+              <img src={logo} style={{ width: "120px" }} alt="Solid5 Shield" />
             </div>
           </div>
           <nav className="nav-tabs">
