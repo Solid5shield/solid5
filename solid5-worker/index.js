@@ -245,7 +245,7 @@ function handleMsStart(request, env) {
   const params = new URLSearchParams({
     client_id: env.MS_CLIENT_ID,
     response_type: "code",
-    redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
+   redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/ms/callback`,
     response_mode: "query",
     scope: "Mail.Read Mail.ReadBasic offline_access User.Read",
     state,
@@ -260,6 +260,11 @@ async function handleMsCallback(request, env) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
+
+  if (url.searchParams.get("error")) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=google_denied`, 302);
+  }
+
   const { uid } = JSON.parse(atob(state));
 
   const tokenRes = await fetch(
@@ -271,12 +276,15 @@ async function handleMsCallback(request, env) {
         client_id: env.MS_CLIENT_ID,
         client_secret: env.MS_CLIENT_SECRET,
         code,
-        redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
+        redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/ms/callback`,
         grant_type: "authorization_code",
       }),
     }
   );
   const tokens = await tokenRes.json();
+  if (tokens.error) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=token_exchange`, 302);
+  }
   await saveTokensToFirestore(uid, "ms365", tokens, env);
   return Response.redirect(`${env.ALLOWED_ORIGIN}?connected=ms365`, 302);
 }
@@ -289,7 +297,7 @@ function handleGoogleStart(request, env) {
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
-    redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
+    redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/google/callback`,
     response_type: "code",
     scope: "https://www.googleapis.com/auth/gmail.readonly",
     access_type: "offline",
@@ -306,20 +314,33 @@ async function handleGoogleCallback(request, env) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
+
+  // Handle user denying permission
+  if (url.searchParams.get("error")) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=google_denied`, 302);
+  }
+
   const { uid } = JSON.parse(atob(state));
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: env.GOOGLE_CLIENT_ID,
+      client_id:     env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
       code,
-      redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
-      grant_type: "authorization_code",
+      redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/google/callback`,
+      grant_type:   "authorization_code",
     }),
   });
+
   const tokens = await tokenRes.json();
+
+  // Check for token exchange error
+  if (tokens.error) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=token_exchange`, 302);
+  }
+
   await saveTokensToFirestore(uid, "gmail", tokens, env);
   return Response.redirect(`${env.ALLOWED_ORIGIN}?connected=gmail`, 302);
 }
@@ -332,7 +353,7 @@ function handleZohoStart(request, env) {
   const params = new URLSearchParams({
     client_id: env.ZOHO_CLIENT_ID,
     response_type: "code",
-    redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
+    redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/zoho/callback`,
     scope: "ZohoMail.messages.READ ZohoMail.accounts.READ",
     access_type: "offline",
     state,
@@ -344,6 +365,11 @@ async function handleZohoCallback(request, env) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
+
+  if (url.searchParams.get("error")) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=google_denied`, 302);
+  }
+
   const { uid } = JSON.parse(atob(state));
 
   const tokenRes = await fetch("https://accounts.zoho.com/oauth/v2/token", {
@@ -353,11 +379,13 @@ async function handleZohoCallback(request, env) {
       client_id: env.ZOHO_CLIENT_ID,
       client_secret: env.ZOHO_CLIENT_SECRET,
       code,
-      redirect_uri: `${env.ALLOWED_ORIGIN}/oauth/callback`,
+      redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/zoho/callback`,
       grant_type: "authorization_code",
     }),
   });
-
+if (tokens.error) {
+    return Response.redirect(`${env.ALLOWED_ORIGIN}?error=token_exchange`, 302);
+  }
   const tokens = await tokenRes.json();
   await saveTokensToFirestore(uid, "zoho", tokens, env); // 👈 saved under client's UID
 
@@ -601,7 +629,7 @@ async function fetchGmailEmails(accessToken) {
 
   // Step 2: fetch each message header (parallel, max 10 at a time)
   const emails = await Promise.all(
-    ids.slice(0, 10).map(async (id) => {
+    ids.slice(0, 20).map(async (id) => {
       const msgRes = await fetch(
         `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
         { headers: { Authorization: `Bearer ${accessToken}` } }

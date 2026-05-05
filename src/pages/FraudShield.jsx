@@ -583,7 +583,7 @@ const styles = `
   .mob-overlay { display: none; }
 }
 `;
-
+const WORKER_URL = "https://solid5-shield-api.nameless-queen-2942.workers.dev";
 // ─── Providers ────────────────────────────────────────────────────────────────
 const PROVIDERS = [
   {
@@ -2519,23 +2519,23 @@ export default function Solid5Shiled() {
     const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
     return unsub;
   }, []);
-  const handleConnect = (providerId) => {
-    const uid = _auth.currentUser?.uid;
-    if (!uid) {
-      alert("Please sign in first");
-      return;
-    }
+const handleConnect = (providerId) => {
+  const uid = _auth.currentUser?.uid;
+  if (!uid) { 
+    alert("Please sign in first"); 
+    return; 
+  }
 
-    const urls = {
-      zoho: `/api/oauth/zoho/start?uid=${uid}`,
-      ms365: `/api/oauth/ms/start?uid=${uid}`,
-      gmail: `/api/oauth/google/start?uid=${uid}`,
-    };
-
-    if (urls[providerId]) {
-      window.location.href = urls[providerId];
-    }
+  const urls = {
+    zoho:  `${WORKER_URL}/api/oauth/zoho/start?uid=${uid}`,
+    ms365: `${WORKER_URL}/api/oauth/ms/start?uid=${uid}`,
+    gmail: `${WORKER_URL}/api/oauth/google/start?uid=${uid}`,
   };
+
+  if (urls[providerId]) {
+    window.location.href = urls[providerId];
+  }
+};
 
   const checkManual = async () => {
     const raw = manualInput
