@@ -2479,13 +2479,17 @@ export default function Solid5Shiled() {
             headers: { Authorization: `Bearer ${idToken}` },
           });
 
-          if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        console.warn(`${provider} failed:`, res.status, errBody);
+          if (res.status === 404) continue;
+      
+      // 401 = real auth error
+      if (res.status === 401) {
+        console.warn(`Auth failed for ${provider}`);
         continue;
       }
 
-          const { emails: fetched } = await res.json();
+      if (!res.ok) continue;
+
+      const { emails: fetched } = await res.json();
 
           for (const e of fetched) {
             const email = { ...e, risk: null, trusted: null };
