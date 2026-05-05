@@ -464,6 +464,124 @@ const styles = `
   ::-webkit-scrollbar       { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  /* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  .topbar { padding: 0 10px; height: 48px; gap: 8px; }
+  .logo-text p { display: none; }
+  .logo-mark { width: 26px; height: 26px; }
+  .nav-tabs { display: none; }
+  .topbar-right .pill-role { display: none; }
+  .pill { font-size: 8px; padding: 3px 6px; }
+
+  .statsbar {
+    display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; border-bottom: 1px solid var(--border);
+  }
+  .statsbar::-webkit-scrollbar { display: none; }
+  .sstat { min-width: 76px; flex-shrink: 0; padding: 6px 10px; border-right: 1px solid var(--border); }
+  .sstat-val { font-size: 18px; }
+
+  .tab-view { padding-bottom: 56px; }
+
+  /* 3-panel -> stacked panels */
+  .main { grid-template-columns: 1fr; position: relative; overflow: hidden; }
+
+  /* Sidebar: slide-in drawer */
+  .sidebar {
+    position: fixed; left: -260px; top: 0; bottom: 0; width: 240px;
+    z-index: 300; transition: left 0.28s cubic-bezier(.4,0,.2,1);
+    box-shadow: none;
+  }
+  .sidebar.mob-open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.18); }
+
+  /* Overlay behind drawer */
+  .mob-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.38);
+    z-index: 290; backdrop-filter: blur(2px);
+  }
+
+  /* Email pane: full width */
+  .email-pane { border-right: none; }
+
+  /* Detail pane: slide in from right */
+  .detail {
+    position: fixed; right: -100%; top: 0; bottom: 0; width: 100%;
+    z-index: 200; transition: right 0.28s cubic-bezier(.4,0,.2,1);
+    background: var(--bg2); overflow-y: auto;
+  }
+  .detail.mob-open { right: 0; }
+
+  /* Mobile back button inside detail */
+  .mob-back {
+    display: flex; align-items: center; gap: 7px; padding: 10px 14px;
+    background: var(--bg3); border-bottom: 1px solid var(--border);
+    font-size: 11px; font-family: var(--mono); font-weight: 700;
+    color: var(--accent); cursor: pointer; border: none; width: 100%;
+    text-align: left; position: sticky; top: 0; z-index: 10; flex-shrink: 0;
+  }
+
+  /* Mobile menu button in topbar */
+  .mob-menu-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--bg3); cursor: pointer; flex-shrink: 0;
+  }
+
+  /* Dashboard: single column */
+  .dashboard { grid-template-columns: 1fr; padding: 8px; gap: 8px; }
+  .wide-2, .wide-3 { grid-column: span 1; }
+
+  /* Incidents */
+  .inc-body { grid-template-columns: 1fr 1fr; }
+  .inc-head { flex-wrap: wrap; gap: 6px; }
+
+  /* Lookalike */
+  .lookalike-card { flex-wrap: wrap; }
+  .lk-domain { width: 100%; font-size: 11px; }
+  .lk-info { flex: unset; width: 100%; }
+
+  /* Settings */
+  .settings-view { padding: 8px; gap: 8px; }
+
+  /* Manual analyze bar */
+  .manual-bar input { font-size: 11px; }
+
+  /* Check grid: 1 col on very small screens */
+  .check-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Bottom nav */
+  .mob-bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 250;
+    background: var(--bg2); border-top: 1px solid var(--border2);
+    display: flex; height: 56px;
+  }
+  .mob-bottom-nav button {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; font-size: 8px; font-weight: 700;
+    font-family: var(--mono); color: var(--text3); background: none;
+    border: none; cursor: pointer; padding: 4px 2px; letter-spacing: 0.05em;
+    border-top: 2px solid transparent; transition: all 0.15s; position: relative;
+  }
+  .mob-bottom-nav button.active {
+    color: var(--accent); background: rgba(0,120,170,0.07);
+    border-top-color: var(--accent);
+  }
+  .mob-bottom-nav .mob-nav-icon { font-size: 16px; line-height: 1; }
+  .mob-nav-badge {
+    position: absolute; top: 4px; right: calc(50% - 14px);
+    min-width: 14px; height: 14px; background: var(--red); color: #fff;
+    font-size: 7px; font-weight: 700; border-radius: 7px; padding: 0 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+  }
+}
+
+@media (min-width: 769px) {
+  .mob-bottom-nav { display: none; }
+  .mob-back { display: none; }
+  .mob-menu-btn { display: none; }
+  .mob-overlay { display: none; }
+}
 `;
 
 // ─── Providers ────────────────────────────────────────────────────────────────
@@ -816,7 +934,7 @@ async function analyzeWithClaude(email) {
   const trusted = email.trusted || "unknown";
   const localChecks = runLocalChecks(email);
   const threatIntel = simulateThreatIntel(domain);
- 
+
   // Build the same prompt as before — Worker forwards it to Claude
   const prompt = `You are Solid5Shiled Enterprise, an AI security analyst. Perform deep domain trust analysis.
 Sender: ${email.from}
@@ -836,11 +954,11 @@ Spamhaus: ${threatIntel.spamhaus}
 Domain age: ${threatIntel.domain_age}
 Respond ONLY with valid JSON:
 {"risk":"high|medium|low","similarity_score":0-100,"verdict":"One concise technical verdict sentence","attack_type":"Specific attack vector or null","confidence":0-100,"signals":[{"type":"danger|warning|ok|info","text":"description"}],"explanation":"2-3 plain English sentences for business users","recommended_action":"block|quarantine|review|allow","employee_alert":"One sentence awareness tip"}`;
- 
+
   // analyzeEmail sends to the Worker (authenticated), Worker calls Claude
   // High-risk results auto-trigger Slack/SIEM webhooks server-side
   const result = await analyzeEmail(email, prompt);
- 
+
   // Attach local computed data (unchanged)
   result._localChecks = localChecks;
   result._threatIntel = threatIntel;
@@ -1054,7 +1172,7 @@ function CheckGrid({ localChecks, result }) {
   );
 }
 
-function DetailPane({ email, result, onAudit, }) {
+function DetailPane({ email, result, onAudit }) {
   const [caseStatus, setCaseStatus] = useState("OPEN");
   if (!email)
     return (
@@ -1490,7 +1608,7 @@ function DashboardTab({ emails, analysis }) {
           </div>
           <div
             style={{
-             fontSize: 13,
+              fontSize: 13,
               color: "var(--text3)",
               fontFamily: "var(--mono)",
               marginTop: 4,
@@ -1819,7 +1937,7 @@ function IncidentsTab({ emails, analysis }) {
               <div
                 style={{
                   padding: "6px 14px 8px",
-                 fontSize: 13,
+                  fontSize: 13,
                   color: "var(--text2)",
                   fontFamily: "var(--mono)",
                   lineHeight: 1.6,
@@ -2001,7 +2119,7 @@ function AuditTab({ auditLog }) {
       >
         <span
           style={{
-           fontSize: 13,
+            fontSize: 13,
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "0.1em",
@@ -2069,7 +2187,7 @@ function SettingsTab({ settings, setSettings }) {
           </span>
         </div>
         <div className="settings-body">
-          <div style={{fontSize: 13, color: "var(--text2)", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 8 }}>
             Select your role to adjust permissions and visible features.
           </div>
           <div className="roles-row">
@@ -2225,7 +2343,7 @@ function SettingsTab({ settings, setSettings }) {
           <span className="settings-title">REST API & Developer Access</span>
         </div>
         <div className="settings-body">
-          <div style={{fontSize: 13, color: "var(--text2)", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: "var(--text2)", marginBottom: 8 }}>
             Embed Solid5Shiled's analysis engine in your own systems.
           </div>
           <div
@@ -2284,6 +2402,9 @@ export default function Solid5Shiled() {
     hipaaMode: false,
     soc2Mode: false,
   });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const isMobile = () => window.innerWidth <= 768;
   const [stats, setStats] = useState({ total: 0, high: 0, medium: 0, low: 0 });
   const analyzeQueue = useRef([]);
   const analyzing = useRef(false);
@@ -2354,65 +2475,67 @@ export default function Solid5Shiled() {
     analyzing.current = false;
   }, [settings, addAudit]);
 
- useEffect(() => {
-  const loadClientEmails = async () => {
-    const user = _auth.currentUser;
-    if (!user) return;
+  useEffect(() => {
+    const loadClientEmails = async () => {
+      const user = _auth.currentUser;
+      if (!user) return;
 
-    const idToken = await user.getIdToken();
-    const providers = ["zoho", "ms365", "gmail", "imap"];
+      const idToken = await user.getIdToken();
+      const providers = ["zoho", "ms365", "gmail", "imap"];
 
-    for (const provider of providers) {
-      try {
-        const res = await fetch(`/api/emails?provider=${provider}`, {
-          headers: { Authorization: `Bearer ${idToken}` },
-        });
+      for (const provider of providers) {
+        try {
+          const res = await fetch(`/api/emails?provider=${provider}`, {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
 
-        if (!res.ok) continue; // provider not connected yet — skip
+          if (!res.ok) continue; // provider not connected yet — skip
 
-        const { emails: fetched } = await res.json();
+          const { emails: fetched } = await res.json();
 
-        for (const e of fetched) {
-          const email = { ...e, risk: null, trusted: null };
-          setEmails((prev) => [...prev, email]);
-          setStats((prev) => ({ ...prev, total: prev.total + 1 }));
-          analyzeQueue.current.push(email);
-          processQueue();
+          for (const e of fetched) {
+            const email = { ...e, risk: null, trusted: null };
+            setEmails((prev) => [...prev, email]);
+            setStats((prev) => ({ ...prev, total: prev.total + 1 }));
+            analyzeQueue.current.push(email);
+            processQueue();
+          }
+
+          setConnected((prev) => ({ ...prev, [provider]: true }));
+        } catch {
+          // Provider fetch failed — continue with others
         }
-
-        setConnected((prev) => ({ ...prev, [provider]: true }));
-
-      } catch {
-        // Provider fetch failed — continue with others
       }
+    };
+
+    // Wait for Firebase auth to resolve before fetching
+    const unsub = onAuthStateChanged(_auth, (user) => {
+      if (user) loadClientEmails();
+    });
+
+    return unsub;
+  }, []);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
+    return unsub;
+  }, []);
+  const handleConnect = (providerId) => {
+    const uid = _auth.currentUser?.uid;
+    if (!uid) {
+      alert("Please sign in first");
+      return;
+    }
+
+    const urls = {
+      zoho: `/api/oauth/zoho/start?uid=${uid}`,
+      ms365: `/api/oauth/ms/start?uid=${uid}`,
+      gmail: `/api/oauth/google/start?uid=${uid}`,
+    };
+
+    if (urls[providerId]) {
+      window.location.href = urls[providerId];
     }
   };
-
-  // Wait for Firebase auth to resolve before fetching
-  const unsub = onAuthStateChanged(_auth, (user) => {
-    if (user) loadClientEmails();
-  });
-
-  return unsub;
-}, []);
-useEffect(() => {
-  const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
-  return unsub;
-}, []);
-const handleConnect = (providerId) => {
-  const uid = _auth.currentUser?.uid;
-  if (!uid) { alert("Please sign in first"); return; }
-  
-  const urls = {
-    zoho:  `/api/oauth/zoho/start?uid=${uid}`,
-    ms365: `/api/oauth/ms/start?uid=${uid}`,
-    gmail: `/api/oauth/google/start?uid=${uid}`,
-  };
-
-  if (urls[providerId]) {
-    window.location.href = urls[providerId];
-  }
-};
 
   const checkManual = async () => {
     const raw = manualInput
@@ -2477,11 +2600,23 @@ const handleConnect = (providerId) => {
     <>
       <style>{styles}</style>
       <div className="app">
+        {/* ── TOPBAR ── */}
         <div className="topbar">
+          <button
+            className="mob-menu-btn"
+            onClick={() => setSidebarOpen((v) => !v)}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M3 6h18M3 12h18M3 18h18"
+                stroke="var(--text2)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
           <div className="logo-wrap">
-            <div className="logo-mark">
-              
-            </div>
+            <div className="logo-mark" />
             <div className="logo-text">
               <h1>SOLID5SHIELD</h1>
               <p>Enterprise Identity Protection v3.0</p>
@@ -2503,7 +2638,7 @@ const handleConnect = (providerId) => {
           </nav>
           <div className="topbar-right">
             {highCount > 0 && (
-              <div className="pill pill-threat">⚠ {highCount} CRITICAL</div>
+              <div className="pill pill-threat">⚠ {highCount}</div>
             )}
             <div className="pill pill-role">ANALYST</div>
             <div className="pill pill-live">
@@ -2513,50 +2648,39 @@ const handleConnect = (providerId) => {
           </div>
         </div>
 
+        {/* ── STATS BAR ── */}
         <div className="statsbar">
-          <div className="sstat">
-            <div className="sstat-label">Scanned</div>
-            <div className="sstat-val cv-accent">{stats.total}</div>
-            <div className="sstat-sub">this session</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Critical</div>
-            <div className="sstat-val cv-red">{stats.high || 0}</div>
-            <div className="sstat-sub">high risk</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Medium</div>
-            <div className="sstat-val cv-orange">{stats.medium || 0}</div>
-            <div className="sstat-sub">review needed</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Trusted</div>
-            <div className="sstat-val cv-green">{stats.low || 0}</div>
-            <div className="sstat-sub">safe senders</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Campaigns</div>
-            <div className="sstat-val cv-purple">3</div>
-            <div className="sstat-sub">active threats</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Lookalikes</div>
-            <div className="sstat-val cv-yellow">
-              {LOOKALIKE_DOMAINS.length}
+          {[
+            ["Scanned", stats.total, "cv-accent", "session"],
+            ["Critical", stats.high || 0, "cv-red", "high risk"],
+            ["Medium", stats.medium || 0, "cv-orange", "review"],
+            ["Trusted", stats.low || 0, "cv-green", "safe"],
+            ["Campaigns", 3, "cv-purple", "active"],
+            ["Lookalikes", LOOKALIKE_DOMAINS.length, "cv-yellow", "monitored"],
+            ["Checks", 14, "cv-pink", "/email"],
+          ].map(([label, val, color, sub]) => (
+            <div className="sstat" key={label}>
+              <div className="sstat-label">{label}</div>
+              <div className={`sstat-val ${color}`}>{val}</div>
+              <div className="sstat-sub">{sub}</div>
             </div>
-            <div className="sstat-sub">domains monitored</div>
-          </div>
-          <div className="sstat">
-            <div className="sstat-label">Detections</div>
-            <div className="sstat-val cv-pink">14</div>
-            <div className="sstat-sub">checks/email</div>
-          </div>
+          ))}
         </div>
 
+        {/* ── MAIN TAB VIEW ── */}
         <div className="tab-view">
           {tab === "monitor" && (
             <div className="main">
-              <div className="sidebar">
+              {/* Sidebar drawer overlay */}
+              {sidebarOpen && (
+                <div
+                  className="mob-overlay"
+                  onClick={() => setSidebarOpen(false)}
+                />
+              )}
+
+              {/* ── SIDEBAR ── */}
+              <div className={`sidebar ${sidebarOpen ? "mob-open" : ""}`}>
                 <div className="sb-section">Providers</div>
                 {PROVIDERS.map((p) => {
                   const count = emails.filter(
@@ -2566,7 +2690,10 @@ const handleConnect = (providerId) => {
                     <button
                       key={p.id}
                       className={`sb-item ${activeProvider === p.id ? "active" : ""}`}
-                      onClick={() => setActiveProvider(p.id)}
+                      onClick={() => {
+                        setActiveProvider(p.id);
+                        setSidebarOpen(false);
+                      }}
                     >
                       <div className={`sb-icon ${p.cls}`}>
                         {p.id === "gmail" ? <GoogleIcon /> : p.icon}
@@ -2642,32 +2769,36 @@ const handleConnect = (providerId) => {
                     />
                   </div>
                 </div>
-                {/* ── User footer ── */}
-          <div className="sb-user-footer">
-            <div className="sb-avatar">
-              {currentUser?.photoURL
-                ? <img src={currentUser.photoURL} alt="avatar" />
-                : (currentUser?.displayName?.[0] || currentUser?.email?.[0] || "?").toUpperCase()
-              }
-            </div>
-            <div className="sb-user-info">
-              <div className="sb-user-name">
-                {currentUser?.displayName || "Guest User"}
-              </div>
-              <div className="sb-user-email">
-                {currentUser?.email || "Not signed in"}
-              </div>
-            </div>
-            <button
-              className="sb-logout-btn"
-              onClick={() => signOut(_auth).catch(console.error)}
-              title="Sign out"
-            >
-              OUT
-            </button>
-          </div>
+                <div className="sb-user-footer">
+                  <div className="sb-avatar">
+                    {currentUser?.photoURL ? (
+                      <img src={currentUser.photoURL} alt="avatar" />
+                    ) : (
+                      (
+                        currentUser?.displayName?.[0] ||
+                        currentUser?.email?.[0] ||
+                        "?"
+                      ).toUpperCase()
+                    )}
+                  </div>
+                  <div className="sb-user-info">
+                    <div className="sb-user-name">
+                      {currentUser?.displayName || "Guest User"}
+                    </div>
+                    <div className="sb-user-email">
+                      {currentUser?.email || "Not signed in"}
+                    </div>
+                  </div>
+                  <button
+                    className="sb-logout-btn"
+                    onClick={() => signOut(_auth).catch(console.error)}
+                  >
+                    OUT
+                  </button>
+                </div>
               </div>
 
+              {/* ── EMAIL PANE ── */}
               <div className="email-pane">
                 <div className="pane-head">
                   <span className="pane-title">{currentProvider?.short}</span>
@@ -2699,7 +2830,10 @@ const handleConnect = (providerId) => {
                       <div
                         key={e.id}
                         className={`email-row ${selected === e.id ? "sel" : ""}`}
-                        onClick={() => setSelected(e.id)}
+                        onClick={() => {
+                          setSelected(e.id);
+                          if (isMobile()) setDetailOpen(true);
+                        }}
                       >
                         <div
                           className={`risk-pip rp-${e.risk || "analyzing"}`}
@@ -2731,7 +2865,7 @@ const handleConnect = (providerId) => {
                 <div className="manual-bar">
                   <input
                     type="text"
-                    placeholder="Check domain: paypa1.com, microsoft-corp.net…"
+                    placeholder="Check domain: paypa1.com…"
                     value={manualInput}
                     onChange={(e) => setManualInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && checkManual()}
@@ -2742,14 +2876,24 @@ const handleConnect = (providerId) => {
                 </div>
               </div>
 
-              <DetailPane
-                email={selectedEmail}
-                result={selectedAnalysis}
-                onAudit={addAudit}
-                settings={settings}
-              />
+              {/* ── DETAIL PANE (slides in on mobile) ── */}
+              <div className={`detail ${detailOpen ? "mob-open" : ""}`}>
+                <button
+                  className="mob-back"
+                  onClick={() => setDetailOpen(false)}
+                >
+                  ← Back to inbox
+                </button>
+                <DetailPane
+                  email={selectedEmail}
+                  result={selectedAnalysis}
+                  onAudit={addAudit}
+                  settings={settings}
+                />
+              </div>
             </div>
           )}
+
           {tab === "dashboard" && (
             <DashboardTab emails={emails} analysis={analysis} />
           )}
@@ -2761,6 +2905,45 @@ const handleConnect = (providerId) => {
           {tab === "settings" && (
             <SettingsTab settings={settings} setSettings={setSettings} />
           )}
+        </div>
+
+        {/* ── MOBILE BOTTOM NAV ── */}
+        <div className="mob-bottom-nav">
+          {[
+            {
+              id: "monitor",
+              icon: "📥",
+              label: "Monitor",
+              badge: pendingCount > 0 ? pendingCount : null,
+            },
+            { id: "dashboard", icon: "📊", label: "Dash", badge: null },
+            {
+              id: "incidents",
+              icon: "⚠️",
+              label: "Incidents",
+              badge: highCount > 0 ? highCount : null,
+            },
+            {
+              id: "lookalike",
+              icon: "🔍",
+              label: "Lookalike",
+              badge: LOOKALIKE_DOMAINS.length,
+            },
+            { id: "audit", icon: "📋", label: "Audit", badge: null },
+            { id: "settings", icon: "⚙️", label: "Settings", badge: null },
+          ].map((t) => (
+            <button
+              key={t.id}
+              className={tab === t.id ? "active" : ""}
+              onClick={() => setTab(t.id)}
+            >
+              {t.badge != null && (
+                <span className="mob-nav-badge">{t.badge}</span>
+              )}
+              <span className="mob-nav-icon">{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 
