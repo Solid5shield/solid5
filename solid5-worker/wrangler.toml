@@ -19,6 +19,9 @@ compatibility_date = "2024-01-01"
 ALLOWED_ORIGIN    = "https://solid5.co.za"   # ← change to your prod domain
 WORKER_URL        = "https://solid5-shield-api.nameless-queen-2942.workers.dev"
 FIREBASE_PROJECT_ID = "solid5"
+
+[ai]
+binding = "AI"
 # ── Production environment overrides ──────────────────────────────────────────
 [env.production]
 [env.production.vars]

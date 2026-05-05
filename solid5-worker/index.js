@@ -109,46 +109,24 @@ async function handleAnalyze(request, env) {
     return err("Missing prompt field", 400, env);
   }
 
-  // 3. Forward to Claude
-  let claudeRes;
-  try {
-    claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": env.CLAUDE_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-  } catch (e) {
-    return err(`Claude API unreachable: ${e.message}`, 502, env);
+const aiResponse = await env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+  messages: [
+    { role: "system", content: "You are a phishing/fraud detection AI. Return only valid JSON." },
+    { role: "user",   content: prompt },
+  ],
+  max_tokens: 1000,
+});
+const text = aiResponse.response ?? "";
+let parsed;
+try {
+  parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+  if (parsed.risk === "high") {
+    dispatchWebhooks(parsed, body.emailMeta || {}, env).catch(() => {});
   }
-
-  if (!claudeRes.ok) {
-    const errBody = await claudeRes.text();
-    return err(`Claude API error: ${errBody}`, claudeRes.status, env);
-  }
-
-  const data = await claudeRes.json();
-
-  // 4. Optionally fire Slack/SIEM webhook for high-risk detections (async, non-blocking)
-  const text = data.content?.find((b) => b.type === "text")?.text || "{}";
-  try {
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-    if (parsed.risk === "high") {
-      // Fire and forget — don't await
-      dispatchWebhooks(parsed, body.emailMeta || {}, env).catch(() => {});
-    }
-  } catch {
-    // JSON parse failed — still return result
-  }
-
-  return json(data, 200, env);
+} catch {
+  parsed = { error: "parse_failed", raw: text };
+}
+return json(parsed, 200, env);
 }
 
 // ─── Webhook dispatcher ───────────────────────────────────────────────────────
@@ -383,10 +361,11 @@ async function handleZohoCallback(request, env) {
       grant_type: "authorization_code",
     }),
   });
+  const tokens = await tokenRes.json();
 if (tokens.error) {
     return Response.redirect(`${env.ALLOWED_ORIGIN}?error=token_exchange`, 302);
   }
-  const tokens = await tokenRes.json();
+  
   await saveTokensToFirestore(uid, "zoho", tokens, env); // 👈 saved under client's UID
 
   return Response.redirect(`${env.ALLOWED_ORIGIN}?connected=zoho`, 302);
