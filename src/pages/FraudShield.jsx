@@ -2470,7 +2470,7 @@ export default function Solid5Shiled() {
       const user = _auth.currentUser;
       if (!user) return;
 
-      const idToken = await user.getIdToken();
+      const idToken = await user.getIdToken(true);
       const providers = ["zoho", "ms365", "gmail", "imap"];
 
       for (const provider of providers) {
@@ -2479,7 +2479,11 @@ export default function Solid5Shiled() {
             headers: { Authorization: `Bearer ${idToken}` },
           });
 
-          if (!res.ok) continue; // provider not connected yet — skip
+          if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        console.warn(`${provider} failed:`, res.status, errBody);
+        continue;
+      }
 
           const { emails: fetched } = await res.json();
 
