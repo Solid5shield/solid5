@@ -2651,6 +2651,7 @@ export default function Solid5Shield() {
   const params = new URLSearchParams(window.location.search);
   const connectedProvider = params.get("connected");
   if (connectedProvider) {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setConnected(prev => ({ ...prev, [connectedProvider]: true }));
     setActiveProvider(connectedProvider);
     window.history.replaceState({}, "", window.location.pathname);
