@@ -2506,6 +2506,7 @@ export default function Solid5Shield() {
   const [auditLog, setAuditLog] = useState([
     makeAuditEntry("system", "Solid5Shield Enterprise v3.0 started", "at-scan"),
   ]);
+  const [authReady, setAuthReady] = useState(false);
   const [settings, setSettings] = useState({
     slackEnabled: true,
     teamsEnabled: false,
@@ -2592,8 +2593,8 @@ export default function Solid5Shield() {
     analyzing.current = false;
   }, [settings, addAudit]);
 
-  useEffect(() => {
-  const loadClientEmails = async () => {
+// Move loadClientEmails OUTSIDE the useEffect, as a useCallback
+const loadClientEmails = useCallback(async () => {
   const user = _auth.currentUser;
   if (!user) return;
 
@@ -2606,47 +2607,57 @@ export default function Solid5Shield() {
         headers: { Authorization: `Bearer ${idToken}` },
       });
 
-      // ← logs go HERE, after res is defined
       console.log(`${provider} status:`, res.status);
       const data = await res.clone().json().catch(() => ({}));
       console.log(`${provider} data:`, data);
 
-      if (res.status === 404) continue;
-      if (res.status === 401) {
-        console.warn(`Auth failed for ${provider}`);
-        continue;
-      }
+      if (res.status === 404 || res.status === 401) continue;
       if (!res.ok) continue;
 
       const { emails: fetched } = await res.json();
+      if (!fetched?.length) continue;
 
       for (const e of fetched) {
         const email = { ...e, risk: null, trusted: null };
-        setEmails((prev) => [...prev, email]);
+        setEmails((prev) => {
+          // Prevent duplicates on re-fetch
+          if (prev.find(x => x.id === email.id)) return prev;
+          return [...prev, email];
+        });
         setStats((prev) => ({ ...prev, total: prev.total + 1 }));
         analyzeQueue.current.push(email);
         processQueue();
       }
 
-      setConnected((prev) => {
-        const updated = { ...prev, [provider]: true };
-        setActiveProvider(prev2 => Object.keys(updated)[0] || prev2);
-        return updated;
-      });
+      setConnected((prev) => ({ ...prev, [provider]: true }));
+      setActiveProvider(provider);
 
     } catch (e) {
       console.error(`${provider} fetch error:`, e.message);
     }
   }
-};
+}, [processQueue]);
 
-    // Wait for Firebase auth to resolve before fetching
-    const unsub = onAuthStateChanged(_auth, (user) => {
-      if (user) loadClientEmails();
-    });
+// Then your useEffects become:
+useEffect(() => {
+  const unsub = onAuthStateChanged(_auth, (user) => {
+    setAuthReady(true);
+    if (user) loadClientEmails();
+  });
+  return unsub;
+}, [loadClientEmails]);
 
-    return unsub;
-  }, []);
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const connectedProvider = params.get("connected");
+  if (connectedProvider) {
+    window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setConnected(prev => ({ ...prev, [connectedProvider]: true }));
+    setActiveProvider(connectedProvider);
+    loadClientEmails(); // ← NOW this works
+  }
+}, [loadClientEmails]);
   useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const connectedProvider = params.get("connected");
@@ -2720,8 +2731,7 @@ const handleConnect = (providerId) => {
     (r) => r.risk === "high",
   ).length;
   const pendingCount = emails.filter((e) => !analysis[e.id]).length;
-const isLoading = emails.filter(e => e.provider === activeProvider).length === 0 
-  && Object.keys(connected).length === 0;
+const isLoading = !authReady;
   const TABS = [
     {
       id: "monitor",
@@ -2966,10 +2976,10 @@ const isLoading = emails.filter(e => e.provider === activeProvider).length === 0
   <div className="loading-state"><div className="spinner" />Loading emails…</div>
 ) : filteredEmails.length === 0 ? (
   <div className="loading-state" style={{color:'var(--text3)'}}>
-    No {filter !== 'all' ? filter+'-risk ' : ''}emails for this provider.
+    No emails for this provider.
     {!connected[activeProvider] && <><br/>Click "+ Connect" to link your account.</>}
   </div>
-): (
+) : (
                     filteredEmails.map((e) => (
                       <div
                         key={e.id}
