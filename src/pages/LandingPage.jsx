@@ -33,7 +33,7 @@ const CSS = `
     justify-content: space-between; transition: all 0.3s;
   }
   .lp-nav.scrolled {
-    background: rgba(253,248,242,0.96); backdrop-filter: blur(20px);
+    background: rgb(0, 0, 0); backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border); box-shadow: 0 2px 16px rgba(90,60,20,0.06);
   }
   .lp-nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
