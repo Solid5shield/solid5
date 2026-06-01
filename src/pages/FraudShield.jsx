@@ -1117,7 +1117,7 @@ function ConnectModal({ provider, onClose, onConnect }) {
             className="modal-btn primary"
             onClick={() => onConnect(provider.id)}
           >
-            Simulate Connect ↗
+            Connect ↗
           </button>
         </div>
       </div>
@@ -2492,7 +2492,7 @@ function SettingsTab({ settings, setSettings }) {
   );
 }
 
-export default function Solid5Shiled() {
+export default function Solid5Shield() {
   const [emails, setEmails] = useState([]);
   const [analysis, setAnalysis] = useState({});
   const [selected, setSelected] = useState(null);
@@ -2504,7 +2504,7 @@ export default function Solid5Shiled() {
   const [tab, setTab] = useState("monitor");
   const [currentUser, setCurrentUser] = useState(null);
   const [auditLog, setAuditLog] = useState([
-    makeAuditEntry("system", "Solid5Shiled Enterprise v3.0 started", "at-scan"),
+    makeAuditEntry("system", "Solid5Shield Enterprise v3.0 started", "at-scan"),
   ]);
   const [settings, setSettings] = useState({
     slackEnabled: true,
@@ -2647,6 +2647,15 @@ export default function Solid5Shiled() {
 
     return unsub;
   }, []);
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const connectedProvider = params.get("connected");
+  if (connectedProvider) {
+    setConnected(prev => ({ ...prev, [connectedProvider]: true }));
+    setActiveProvider(connectedProvider);
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+}, []);
   useEffect(() => {
     const unsub = onAuthStateChanged(_auth, (u) => setCurrentUser(u));
     return unsub;

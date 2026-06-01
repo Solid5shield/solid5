@@ -223,7 +223,7 @@ function handleMsStart(request, env) {
   const params = new URLSearchParams({
     client_id: env.MS_CLIENT_ID,
     response_type: "code",
-   redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/ms/callback`,
+   redirect_uri: `${env.WORKER_URL}/api/oauth/ms/callback`,
     response_mode: "query",
     scope: "Mail.Read Mail.ReadBasic offline_access User.Read",
     state,
@@ -254,7 +254,7 @@ async function handleMsCallback(request, env) {
         client_id: env.MS_CLIENT_ID,
         client_secret: env.MS_CLIENT_SECRET,
         code,
-        redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/ms/callback`,
+        redirect_uri: `${env.WORKER_URL}/api/oauth/ms/callback`,
         grant_type: "authorization_code",
       }),
     }
@@ -275,7 +275,7 @@ function handleGoogleStart(request, env) {
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
-    redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/google/callback`,
+    redirect_uri: `${env.WORKER_URL}/api/oauth/google/callback`,
     response_type: "code",
     scope: "https://www.googleapis.com/auth/gmail.readonly",
     access_type: "offline",
@@ -307,7 +307,7 @@ async function handleGoogleCallback(request, env) {
       client_id:     env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
       code,
-      redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/google/callback`,
+      redirect_uri: `${env.WORKER_URL}/api/oauth/google/callback`,
       grant_type:   "authorization_code",
     }),
   });
@@ -324,6 +324,7 @@ async function handleGoogleCallback(request, env) {
 }
 // ─── OAuth: Zoho ──────────────────────────────────────────────────────────────
 function handleZohoStart(request, env) {
+  const REDIRECT = "https://solid5-shield-api.nameless-queen-2942.workers.dev/api/oauth/zoho/callback";
   const url = new URL(request.url);
   const uid = url.searchParams.get("uid"); // Frontend passes Firebase UID
   const state = btoa(JSON.stringify({ uid, provider: "zoho" }));
@@ -331,7 +332,7 @@ function handleZohoStart(request, env) {
   const params = new URLSearchParams({
     client_id: env.ZOHO_CLIENT_ID,
     response_type: "code",
-    redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/zoho/callback`,
+    redirect_uri: REDIRECT,
     scope: "ZohoMail.messages.READ ZohoMail.accounts.READ",
     access_type: "offline",
     state,
@@ -340,6 +341,10 @@ function handleZohoStart(request, env) {
 }
 
 async function handleZohoCallback(request, env) {
+  const REDIRECT = "https://solid5-shield-api.nameless-queen-2942.workers.dev/api/oauth/zoho/callback";
+
+  console.log("SA_KEY type:", typeof env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  console.log("SA_KEY start:", (env.GOOGLE_SERVICE_ACCOUNT_KEY || "").substring(0, 50));
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -357,35 +362,37 @@ async function handleZohoCallback(request, env) {
       client_id: env.ZOHO_CLIENT_ID,
       client_secret: env.ZOHO_CLIENT_SECRET,
       code,
-      redirect_uri: `${env.ALLOWED_ORIGIN}/api/oauth/zoho/callback`,
+      redirect_uri: REDIRECT,
       grant_type: "authorization_code",
     }),
   });
-  const tokens = await tokenRes.json();
-if (tokens.error) {
+const rawText = await tokenRes.text();
+  console.log("Zoho token raw response:", tokenRes.status, rawText.substring(0, 300));
+
+  const tokens = JSON.parse(rawText); // ← change from tokenRes.json()
+
+  if (tokens.error) {
     return Response.redirect(`${env.ALLOWED_ORIGIN}?error=token_exchange`, 302);
   }
-  
-  await saveTokensToFirestore(uid, "zoho", tokens, env); // 👈 saved under client's UID
 
+  await saveTokensToFirestore(uid, "zoho", tokens, env);
   return Response.redirect(`${env.ALLOWED_ORIGIN}?connected=zoho`, 302);
 }
 
 // ─── Firestore helpers ────────────────────────────────────────────────────────
 async function getFirestoreToken(env) {
-  // Use a service account key stored as a secret
-  const res = await fetch(
-    `https://oauth2.googleapis.com/token`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: await makeServiceAccountJWT(env),
-      }),
-    }
-  );
-  const data = await res.json();
+  const res = await fetch(`https://oauth2.googleapis.com/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: await makeServiceAccountJWT(env),
+    }),
+  });
+  const text = await res.text();
+  console.log("Firestore token response:", res.status, text.substring(0, 200));
+  
+  const data = JSON.parse(text);
   return data.access_token;
 }
 
@@ -447,7 +454,7 @@ async function handleFetchEmails(request, env) {
   // 2. Load their stored tokens from Firestore
   const tokens = await getTokensFromFirestore(caller.uid, provider, env);
   if (!tokens?.access_token) {
-    return err(`No token found for provider: ${provider}. Please reconnect.`, 401, env);
+    return err(`No token for ${provider}`, 404, env);
   }
 
   // 3. Refresh token if expired
@@ -508,6 +515,7 @@ async function maybeRefreshToken(uid, provider, tokens, env) {
     access_token:  newTokens.access_token,
     refresh_token: newTokens.refresh_token || tokens.refresh_token,
     expires_in:    newTokens.expires_in || 3600,
+    saved_at:      Math.floor(Date.now() / 1000),
   };
 
   // Save refreshed token back to Firestore
@@ -517,21 +525,26 @@ async function maybeRefreshToken(uid, provider, tokens, env) {
 // ─── Service Account JWT (required for Firestore) ─────────────────────────────
 async function makeServiceAccountJWT(env) {
   const sa = JSON.parse(env.GOOGLE_SERVICE_ACCOUNT_KEY);
+  console.log("SA client_email:", sa.client_email);
+  console.log("SA private_key start:", sa.private_key?.substring(0, 40));
+
   const now = Math.floor(Date.now() / 1000);
 
-  const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const header  = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const payload = btoa(JSON.stringify({
-    iss: sa.client_email,
+    iss:   sa.client_email,
     scope: "https://www.googleapis.com/auth/datastore",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
+    aud:   "https://oauth2.googleapis.com/token",
+    iat:   now,
+    exp:   now + 3600,
   }));
 
   const signingInput = `${header}.${payload}`;
 
-  // Import the private key
-  const pemKey = sa.private_key.replace(/\\n/g, "\n");
+  const pemKey = sa.private_key.replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+  console.log("PEM first line:", pemKey.split("\n")[0]);
+  console.log("PEM line count:", pemKey.split("\n").length);
+
   const keyDer = pemToDer(pemKey);
   const privateKey = await crypto.subtle.importKey(
     "pkcs8", keyDer,
