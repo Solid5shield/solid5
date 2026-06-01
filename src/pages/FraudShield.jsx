@@ -2593,52 +2593,52 @@ export default function Solid5Shield() {
   }, [settings, addAudit]);
 
   useEffect(() => {
-    const loadClientEmails = async () => {
-      const user = _auth.currentUser;
-      if (!user) return;
+  const loadClientEmails = async () => {
+  const user = _auth.currentUser;
+  if (!user) return;
 
-      const idToken = await user.getIdToken(true);
-      const providers = ["zoho", "ms365", "gmail", "imap"];
+  const idToken = await user.getIdToken(true);
+  const providers = ["zoho", "ms365", "gmail", "imap"];
 
-      for (const provider of providers) {
-        try {
-          const res = await fetch(`${WORKER_URL}/api/emails?provider=${provider}`, {
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
+  for (const provider of providers) {
+    try {
+      const res = await fetch(`${WORKER_URL}/api/emails?provider=${provider}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
 
-          if (res.status === 404) continue;
-      
-      // 401 = real auth error
+      // ← logs go HERE, after res is defined
+      console.log(`${provider} status:`, res.status);
+      const data = await res.clone().json().catch(() => ({}));
+      console.log(`${provider} data:`, data);
+
+      if (res.status === 404) continue;
       if (res.status === 401) {
         console.warn(`Auth failed for ${provider}`);
         continue;
       }
-
       if (!res.ok) continue;
 
       const { emails: fetched } = await res.json();
 
-          for (const e of fetched) {
-            const email = { ...e, risk: null, trusted: null };
-            setEmails((prev) => [...prev, email]);
-            setStats((prev) => ({ ...prev, total: prev.total + 1 }));
-            analyzeQueue.current.push(email);
-            processQueue();
-          }
-
-         setConnected((prev) => {
-  const updated = { ...prev, [provider]: true };
-  // Auto-switch to first connected provider
-  setActiveProvider(prev2 => 
-    Object.keys(updated)[0] || prev2
-  );
-  return updated;
-});
-        } catch {
-          // Provider fetch failed — continue with others
-        }
+      for (const e of fetched) {
+        const email = { ...e, risk: null, trusted: null };
+        setEmails((prev) => [...prev, email]);
+        setStats((prev) => ({ ...prev, total: prev.total + 1 }));
+        analyzeQueue.current.push(email);
+        processQueue();
       }
-    };
+
+      setConnected((prev) => {
+        const updated = { ...prev, [provider]: true };
+        setActiveProvider(prev2 => Object.keys(updated)[0] || prev2);
+        return updated;
+      });
+
+    } catch (e) {
+      console.error(`${provider} fetch error:`, e.message);
+    }
+  }
+};
 
     // Wait for Firebase auth to resolve before fetching
     const unsub = onAuthStateChanged(_auth, (user) => {
