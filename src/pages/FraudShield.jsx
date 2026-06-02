@@ -455,7 +455,10 @@ const styles = `
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   /* ── MOBILE RESPONSIVE ── */
+/* ── MOBILE RESPONSIVE ── */
 @media (max-width: 768px) {
+
+  /* ── Topbar ── */
   .topbar { padding: 0 10px; height: 48px; gap: 8px; }
   .logo-text p { display: none; }
   .logo-mark { width: 26px; height: 26px; }
@@ -463,104 +466,204 @@ const styles = `
   .topbar-right .pill-role { display: none; }
   .pill { font-size: 8px; padding: 3px 6px; }
 
+  /* ── Stats bar: horizontal scroll, no wrapping ── */
   .statsbar {
-    display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; border-bottom: 1px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: nowrap;
   }
   .statsbar::-webkit-scrollbar { display: none; }
-  .sstat { min-width: 76px; flex-shrink: 0; padding: 6px 10px; border-right: 1px solid var(--border); }
-  .sstat-val { font-size: 18px; }
+  .sstat {
+    min-width: 74px;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-right: 1px solid var(--border);
+  }
+  .sstat-val { font-size: 17px; }
 
+  /* ── Tab view bottom padding for nav ── */
   .tab-view { padding-bottom: 56px; }
 
-  /* 3-panel -> stacked panels */
+  /* ── Three-panel → stacked ── */
   .main { grid-template-columns: 1fr; position: relative; overflow: hidden; }
 
-  /* Sidebar: slide-in drawer */
+  /* ── Sidebar: slide-in drawer ── */
   .sidebar {
-    position: fixed; left: -260px; top: 0; bottom: 0; width: 240px;
-    z-index: 300; transition: left 0.28s cubic-bezier(.4,0,.2,1);
+    position: fixed;
+    left: -260px; top: 0; bottom: 0;
+    width: 240px;
+    z-index: 300;
+    transition: left 0.28s cubic-bezier(.4,0,.2,1);
     box-shadow: none;
+    overflow-y: auto;
   }
   .sidebar.mob-open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.18); }
 
-  /* Overlay behind drawer */
+  /* ── Sidebar user footer: prevent overlap on narrow widths ── */
+  .sb-user-footer {
+    padding: 8px 10px;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .sb-user-name  { font-size: 10px; }
+  .sb-user-email { font-size: 8px; }
+  .sb-logout-btn { padding: 4px 6px; font-size: 8px; }
+
+  /* ── Overlay behind drawer ── */
   .mob-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.38);
-    z-index: 290; backdrop-filter: blur(2px);
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.38);
+    z-index: 290;
+    backdrop-filter: blur(2px);
   }
 
-  /* Email pane: full width */
-  .email-pane { border-right: none; }
+  /* ── Email pane: full width, no right border ── */
+  .email-pane { border-right: none; height: calc(100vh - 104px); /* topbar + statsbar */ }
 
-  /* Detail pane: slide in from right */
+  /* ── Email rows: prevent right-side overflow ── */
+  .email-right { max-width: 72px; min-width: 58px; }
+  .email-info { min-width: 0; }
+  .rbadge { white-space: nowrap; }
+  .campaign-tag { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Manual bar: inputs and button don't overlap ── */
+  .manual-bar { gap: 6px; padding: 8px 10px; }
+  .manual-bar input { min-width: 0; flex: 1; font-size: 11px; }
+  .analyze-btn { flex-shrink: 0; padding: 7px 10px; font-size: 10px; }
+
+  /* ── Detail pane: full-screen slide from right ── */
   .detail {
-    position: fixed; right: -100%; top: 0; bottom: 0; width: 100%;
-    z-index: 200; transition: right 0.28s cubic-bezier(.4,0,.2,1);
-    background: var(--bg2); overflow-y: auto;
+    position: fixed;
+    right: -100%; top: 0; bottom: 0;
+    width: 100%;
+    z-index: 200;
+    transition: right 0.28s cubic-bezier(.4,0,.2,1);
+    background: var(--bg2);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .detail.mob-open { right: 0; }
 
-  /* Mobile back button inside detail */
+  /* ── Mobile back button ── */
   .mob-back {
-    display: flex; align-items: center; gap: 7px; padding: 10px 14px;
-    background: var(--bg3); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
     font-size: 11px; font-family: var(--mono); font-weight: 700;
-    color: var(--accent); cursor: pointer; border: none; width: 100%;
-    text-align: left; position: sticky; top: 0; z-index: 10; flex-shrink: 0;
+    color: var(--accent); cursor: pointer;
+    border: none; width: 100%; text-align: left;
+    position: sticky; top: 0; z-index: 10; flex-shrink: 0;
   }
 
-  /* Mobile menu button in topbar */
+  /* ── Detail: action buttons 2×2 grid ── */
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    padding: 10px 14px;
+  }
+  .act-btn { flex: unset; }
+
+  /* ── Check grid: 2 columns clamped ── */
+  .check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* ── Case action buttons: wrap cleanly ── */
+  .case-actions-row { flex-wrap: wrap; }
+  .case-btn { min-width: calc(50% - 4px); flex: 1 1 calc(50% - 4px); }
+
+  /* ── Mobile menu button ── */
   .mob-menu-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--border2);
-    background: var(--bg3); cursor: pointer; flex-shrink: 0;
+    width: 34px; height: 34px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    cursor: pointer; flex-shrink: 0;
   }
 
-  /* Dashboard: single column */
-  .dashboard { grid-template-columns: 1fr; padding: 8px; gap: 8px; }
-  .wide-2, .wide-3 { grid-column: span 1; }
+  /* ── Dashboard: single column, no span overflows ── */
+  .dashboard {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 8px;
+  }
+  .wide-2,
+  .wide-3 { grid-column: span 1; }
 
-  /* Incidents */
-  .inc-body { grid-template-columns: 1fr 1fr; }
+  /* ── Integration grid inside dashboard: 2 cols max ── */
+  .dash-card-body [style*="grid-template-columns: repeat(6"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ── Incidents: stat grid 2-col, head wraps ── */
+  .inc-body { grid-template-columns: repeat(2, 1fr); }
   .inc-head { flex-wrap: wrap; gap: 6px; }
+  .inc-actions { flex-wrap: wrap; gap: 4px; }
+  .inc-btn { flex: 1 1 calc(50% - 4px); text-align: center; }
 
-  /* Lookalike */
-  .lookalike-card { flex-wrap: wrap; }
+  /* ── Lookalike: stack all columns ── */
+  .lookalike-card {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
   .lk-domain { width: 100%; font-size: 11px; }
   .lk-info { flex: unset; width: 100%; }
+  .lk-actions { width: 100%; justify-content: flex-end; }
 
-  /* Settings */
+  /* ── Settings: full-width layout ── */
   .settings-view { padding: 8px; gap: 8px; }
+  .setting-row { gap: 12px; }
+  .roles-row { flex-wrap: wrap; gap: 4px; }
 
-  /* Manual analyze bar */
-  .manual-bar input { font-size: 11px; }
+  /* ── Domain comparison row: stack on tiny screens ── */
+  .domain-row { flex-direction: column; gap: 4px; align-items: stretch; }
+  .vs-sep { text-align: center; }
 
-  /* Check grid: 1 col on very small screens */
-  .check-grid { grid-template-columns: 1fr 1fr; }
-
-  /* Bottom nav */
+  /* ── Bottom nav ── */
   .mob-bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 250;
-    background: var(--bg2); border-top: 1px solid var(--border2);
-    display: flex; height: 56px;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    z-index: 250;
+    background: var(--bg2);
+    border-top: 1px solid var(--border2);
+    display: flex;
+    height: 56px;
   }
   .mob-bottom-nav button {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; gap: 2px; font-size: 8px; font-weight: 700;
-    font-family: var(--mono); color: var(--text3); background: none;
-    border: none; cursor: pointer; padding: 4px 2px; letter-spacing: 0.05em;
-    border-top: 2px solid transparent; transition: all 0.15s; position: relative;
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px;
+    font-size: 8px; font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text3);
+    background: none; border: none;
+    cursor: pointer;
+    padding: 4px 2px;
+    letter-spacing: 0.05em;
+    border-top: 2px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
   }
   .mob-bottom-nav button.active {
-    color: var(--accent); background: rgba(0,120,170,0.07);
+    color: var(--accent);
+    background: rgba(0,120,170,0.07);
     border-top-color: var(--accent);
   }
   .mob-bottom-nav .mob-nav-icon { font-size: 16px; line-height: 1; }
   .mob-nav-badge {
     position: absolute; top: 4px; right: calc(50% - 14px);
-    min-width: 14px; height: 14px; background: var(--red); color: #fff;
-    font-size: 7px; font-weight: 700; border-radius: 7px; padding: 0 3px;
+    min-width: 14px; height: 14px;
+    background: var(--red); color: #fff;
+    font-size: 7px; font-weight: 700;
+    border-radius: 7px; padding: 0 3px;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--mono);
   }
@@ -571,6 +674,15 @@ const styles = `
   .mob-back { display: none; }
   .mob-menu-btn { display: none; }
   .mob-overlay { display: none; }
+}
+
+/* ── Extra small screens (< 360px) ── */
+@media (max-width: 360px) {
+  .check-grid { grid-template-columns: 1fr; }
+  .inc-body { grid-template-columns: 1fr; }
+  .sstat { min-width: 64px; }
+  .sstat-val { font-size: 15px; }
+  .email-right { max-width: 60px; }
 }
 `;
 const WORKER_URL = "https://solid5-shield-api.nameless-queen-2942.workers.dev";
