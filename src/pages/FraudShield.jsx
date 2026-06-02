@@ -411,7 +411,7 @@ const styles = `
   .lk-actions { display: flex; gap: 5px; }
   .lk-btn { padding: 4px 10px; border-radius: 4px; font-size: 9px; font-weight: 700; cursor: pointer; font-family: var(--mono); border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); transition: all 0.15s; }
 
-  .settings-view { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .settings-view { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; }
   .settings-card { background: #fff; border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
   .settings-head { padding: 10px 14px; background: var(--bg3); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
   .settings-title { font-size: 11px; font-weight: 700; font-family: var(--mono); color: var(--text2); }
@@ -617,7 +617,7 @@ const styles = `
   .lk-actions { width: 100%; justify-content: flex-end; }
 
   /* ── Settings: full-width layout ── */
-  .settings-view { padding: 8px; gap: 8px; }
+  .settings-view { padding: 8px; gap: 8px; gap: 8px; }
   .setting-row { gap: 12px; }
   .roles-row { flex-wrap: wrap; gap: 4px; }
 
